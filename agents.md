@@ -20,14 +20,38 @@ intent/
 │   ├── build_context.ts         # Build per-guide context bundles
 │   ├── make_prompts.ts          # Generate LLM-ready prompts
 │   ├── run.ts                   # Simple orchestrator (flat)
+│   ├── llm/
+│   │   └── client.ts            # Claude Code SDK wrapper
 │   └── workflows/
 │       ├── build_tree.ts        # Build guide hierarchy & layers
 │       ├── update_layered.ts    # Layer-by-layer orchestrator
 │       ├── process_prompts.ts   # Claude Code direct editing
 │       └── apply_patches.ts     # Legacy patch application
+├── server/
+│   ├── index.ts         # Bun + Hono HTTP server (port 5174)
+│   └── svc/
+│       ├── status.ts    # Project status & run info
+│       ├── context.ts   # Smart change detection
+│       ├── filetree.ts  # File tree with decorations
+│       ├── workflow.ts  # Complete workflow orchestrator
+│       ├── changes.ts   # File change lists
+│       └── intent.ts    # Intent generation & commit
+├── svc/
+│   └── onboard.ts       # Project scanning & question packs
 ├── store/
 │   ├── schema.sql       # SQLite schema for runs/guides/ADRs
 │   └── db.ts            # Database wrapper (Bun.sqlite)
+├── web/                 # React + Vite GUI
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Generate.tsx     # Main workflow page (default)
+│   │   │   ├── Dashboard.tsx    # Overview & stats
+│   │   │   ├── Runs.tsx         # Run history
+│   │   │   ├── Coverage.tsx     # Guide tree view
+│   │   │   └── Onboarding.tsx   # Onboarding wizard
+│   │   └── components/
+│   │       └── FileTree.tsx     # IDE-style file tree
+│   └── vite.config.ts
 └── templates/
     └── decisions-agents.md      # ADR guide + template
 ```
@@ -82,14 +106,29 @@ Creates:
 - Updates `.gitignore` to exclude `.proposed-intent/`
 
 ### 3. Usage Loop
+
+#### Option A: GUI Workflow (Recommended)
 ```bash
 # Make code changes
-git add changed-files.ts
+git add .
 
-# Option 1: Generate prompts only (manual review in Cursor)
-intent update
+# Launch GUI (auto-starts server, opens browser)
+intent
 
-# Option 2: Automated layered workflow (recommended)
+# In the browser:
+# 1. See file tree + staged changes
+# 2. Click "Generate Intent Documentation"
+# 3. Watch agent queue progress
+# 4. Review generated ADR + commit message
+# 5. Click "Accept & Commit"
+```
+
+#### Option B: CLI Workflow
+```bash
+# Make code changes
+git add .
+
+# Automated layered workflow
 intent update --auto --layered
 
 # This will:

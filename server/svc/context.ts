@@ -16,6 +16,7 @@ export interface ProjectContext {
   changes: {
     staged: string[];
     unstaged: string[];
+    untracked: string[];
     total: number;
   };
   affected_guides: {
@@ -62,7 +63,7 @@ export async function getContext(): Promise<ProjectContext> {
         root: workingDir,
         has_intent: false
       },
-      changes: { staged: [], unstaged: [], total: 0 },
+      changes: { staged: [], unstaged: [], untracked: [], total: 0 },
       affected_guides: [],
       quick_actions: {
         can_update: false,
@@ -92,7 +93,8 @@ export async function getContext(): Promise<ProjectContext> {
   // Detect changes
   const staged = sh('git diff --staged --name-only', gitRoot).split('\n').filter(Boolean);
   const unstaged = sh('git diff --name-only', gitRoot).split('\n').filter(Boolean);
-  const allChanged = [...new Set([...staged, ...unstaged])];
+  const untracked = sh('git ls-files --others --exclude-standard', gitRoot).split('\n').filter(Boolean);
+  const allChanged = [...new Set([...staged, ...unstaged, ...untracked])];
   
   // Find affected guides (simple: find all agents.md files in parent dirs of changed files)
   const affectedGuides: { path: string; stale: boolean; last_updated: string | null }[] = [];
@@ -156,13 +158,14 @@ export async function getContext(): Promise<ProjectContext> {
     changes: {
       staged,
       unstaged,
-      total: allChanged.length
+      untracked,
+      total: staged.length // Only staged changes count as "active"
     },
     affected_guides: affectedGuides.sort((a, b) => a.path.localeCompare(b.path)),
     quick_actions: {
-      can_update: allChanged.length > 0 && hasIntent,
+      can_update: staged.length > 0 && hasIntent,
       has_staged: staged.length > 0,
-      has_unstaged: unstaged.length > 0,
+      has_unstaged: unstaged.length > 0 || untracked.length > 0,
       guide_count: affectedGuides.length
     }
   };

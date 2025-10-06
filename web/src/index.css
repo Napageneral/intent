@@ -5,18 +5,18 @@
 }
 
 :root {
-  --bg-primary: #0f1419;
-  --bg-secondary: #1a1f2e;
-  --bg-tertiary: #252b3b;
-  --text-primary: #e6e6e6;
-  --text-secondary: #a0a0a0;
-  --text-dim: #606060;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --border: #2d3748;
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary: #2d2d30;
+  --text-primary: #cccccc;
+  --text-secondary: #969696;
+  --text-dim: #6a6a6a;
+  --accent: #d4a574;
+  --accent-hover: #c99760;
+  --success: #89d185;
+  --warning: #dcdcaa;
+  --error: #f48771;
+  --border: #3e3e42;
 }
 
 body {

@@ -17,6 +17,10 @@ import { getTree } from './svc/tree';
 import { diffGuide } from './svc/diff';
 import { startRun, getRunById, listRuns, runEventBus } from './svc/run';
 import { getContext } from './svc/context';
+import { getChanges } from './svc/changes';
+import { generateIntent, commitIntent } from './svc/intent';
+import { getFileTree } from './svc/filetree';
+import { runWorkflow } from './svc/workflow';
 
 const app = new Hono();
 
@@ -129,6 +133,62 @@ app.get('/api/run/:id/stream', async (c) => {
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
     },
+  });
+});
+
+// Changes endpoint
+app.get('/api/changes', async (c) => c.json(await getChanges()));
+
+// File tree with decorations
+app.get('/api/filetree', (c) => c.json(getFileTree()));
+
+// Intent generation (layered update + ADR + commit message)
+app.post('/api/generate-intent', async (c) => {
+  try {
+    const result = await generateIntent();
+    return c.json(result);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Commit endpoint
+app.post('/api/commit', async (c) => {
+  try {
+    const body = await c.req.json();
+    const result = await commitIntent(body.message, body.adr || '');
+    return c.json(result);
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Complete workflow endpoint with SSE streaming
+app.post('/api/workflow', async (c) => {
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      
+      try {
+        for await (const event of runWorkflow()) {
+          const data = `data: ${JSON.stringify(event)}\n\n`;
+          controller.enqueue(encoder.encode(data));
+        }
+        controller.close();
+      } catch (error: any) {
+        const errorEvent = `data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`;
+        controller.enqueue(encoder.encode(errorEvent));
+        controller.close();
+      }
+    }
+  });
+  
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    }
   });
 });
 

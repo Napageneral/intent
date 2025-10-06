@@ -428,6 +428,9 @@ COMMANDS
   version             Show version
 
 EXAMPLES
+  # Smart start (no args) - opens GUI, detects changes
+  intent
+
   # Initialize in new project
   intent init
 
@@ -442,17 +445,10 @@ EXAMPLES
 
   # Let Claude Code update files automatically
   git add .
-  intent update --auto
-
-  # Use layered workflow (bottom-up, child → parent context)
-  git add .
   intent update --auto --layered
 
-  # Update for last commit
-  intent update head --auto --layered
-
-  # Update for PR (against origin/main)
-  intent update pr --auto --layered
+  # Start server in foreground
+  intent serve
 
 CONFIGURATION
   Edit .intent/config.json to customize:
@@ -469,6 +465,34 @@ LEARN MORE
 async function smartStart() {
   const { spawn, execSync } = await import('child_process');
   
+  // Check for unstaged changes and warn user
+  try {
+    const unstaged = execSync('git diff --name-only', { encoding: 'utf-8' }).trim();
+    const untracked = execSync('git ls-files --others --exclude-standard', { encoding: 'utf-8' }).trim();
+    
+    const unstagedFiles = unstaged.split('\n').filter(Boolean);
+    const untrackedFiles = untracked.split('\n').filter(Boolean);
+    const totalUnstaged = unstagedFiles.length + untrackedFiles.length;
+    
+    if (totalUnstaged > 0) {
+      console.log('\n⚠️  \x1b[33mWarning:\x1b[0m Unstaged changes detected\n');
+      console.log(`   ${totalUnstaged} file(s) are not staged for commit`);
+      console.log('   Intent works best with staged changes for better context\n');
+      
+      if (unstagedFiles.length > 0) {
+        console.log(`   \x1b[33mModified:\x1b[0m ${unstagedFiles.length} file(s)`);
+      }
+      if (untrackedFiles.length > 0) {
+        console.log(`   \x1b[32mUntracked:\x1b[0m ${untrackedFiles.length} file(s)`);
+      }
+      
+      console.log('\n   \x1b[36mTip:\x1b[0m Stage changes with: \x1b[1mgit add .\x1b[0m');
+      console.log('   Then run \x1b[1mintent\x1b[0m again for optimal results\n');
+    }
+  } catch {
+    // Not in a git repo or git not available, continue silently
+  }
+  
   // Check if server is already running
   let serverRunning = false;
   try {
@@ -479,7 +503,7 @@ async function smartStart() {
   if (!serverRunning) {
     console.log('🚀 Starting Intent server...\n');
     const serverPath = join(__dirname, '../server/index.ts');
-    spawn('bun', ['run', serverPath], {
+    const serverProc = spawn('bun', ['run', serverPath], {
       stdio: 'ignore',
       detached: true,
       cwd: join(__dirname, '..'),
@@ -487,10 +511,23 @@ async function smartStart() {
         ...process.env,
         USER_CWD: process.cwd()
       }
-    }).unref(); // Detach so it keeps running
+    });
+    serverProc.unref(); // Detach so CLI can exit but server keeps running
     
-    // Wait for server to start
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for server to actually start
+    let attempts = 0;
+    while (attempts < 20) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      try {
+        const res = await fetch('http://localhost:5174/api/health');
+        if (res.ok) break;
+      } catch {}
+      attempts++;
+    }
+    
+    if (attempts >= 20) {
+      console.error('⚠️  Server may not have started. Try: intent serve');
+    }
   }
   
   // Open browser
