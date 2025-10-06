@@ -289,9 +289,119 @@ async function onboard() {
   console.log(`\n✅ Generated ${needsGuides.length} question pack(s) in .intent/questions/\n`);
   console.log('Next steps:');
   console.log('  1. Review and answer questions in .intent/questions/*.md');
-  console.log('  2. Run: intent synthesize (coming soon)');
-  console.log('  3. Review generated draft guides');
-  console.log('  4. Accept and commit\n');
+  console.log('  2. Run: intent synthesize');
+  console.log('  3. Review generated draft guides in .intent/drafts/');
+  console.log('  4. Move drafts to target directories and commit\n');
+}
+
+// Synthesize drafts from answered question packs
+async function synthesize() {
+  const { parseQuestionPackAnswers, buildSynthesisPrompt } = await import('../svc/onboard');
+  const { updateGuideFile } = await import('../core/llm/client');
+  const { updateQuestionPack, getQuestionPacksByStatus } = await import('../store/db');
+  
+  type LLMConfig = { model: string; provider: string; apiKey?: string; workingDirectory?: string };
+  const { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } = await import('fs');
+  const { join, dirname } = await import('path');
+  
+  console.log('🔍 Finding answered question packs...\n');
+  
+  const projectRoot = process.cwd();
+  const intentDir = join(projectRoot, '.intent');
+  const questionsDir = join(intentDir, 'questions');
+  const draftsDir = join(intentDir, 'drafts');
+  
+  if (!existsSync(questionsDir)) {
+    console.error('❌ No .intent/questions/ directory found. Run "intent onboard" first.');
+    return;
+  }
+  
+  // Find answered question packs (look for "→" with non-empty answers)
+  const questionFiles = readdirSync(questionsDir).filter(f => f.endsWith('.md'));
+  const answered: Array<{ file: string; answers: any }> = [];
+  
+  for (const file of questionFiles) {
+    const content = readFileSync(join(questionsDir, file), 'utf-8');
+    const parsed = parseQuestionPackAnswers(content);
+    
+    if (parsed && parsed.intent && parsed.intent.length > 5) { // At least some answer
+      answered.push({ file, answers: parsed });
+    }
+  }
+  
+  if (answered.length === 0) {
+    console.log('⚠️  No answered question packs found.');
+    console.log('   Edit files in .intent/questions/ and add answers after "→" markers.\n');
+    return;
+  }
+  
+  console.log(`📝 Found ${answered.length} answered question pack(s)\n`);
+  console.log('🤖 Synthesizing draft guides with Claude...\n');
+  
+  if (!existsSync(draftsDir)) {
+    mkdirSync(draftsDir, { recursive: true });
+  }
+  
+  // Read config for model
+  const configPath = join(intentDir, 'config.json');
+  let model = 'claude-sonnet-4-5';
+  try {
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    model = config.llm?.model || model;
+  } catch {}
+  
+  const llmConfig: LLMConfig = {
+    model,
+    provider: 'anthropic',
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    workingDirectory: projectRoot
+  };
+  
+  if (!llmConfig.apiKey) {
+    console.error('❌ ANTHROPIC_API_KEY not set. Export it or add to .intent/config.json');
+    return;
+  }
+  
+  // Generate drafts (parallel!)
+  for (let i = 0; i < answered.length; i++) {
+    const { file, answers } = answered[i];
+    console.log(`  [${i + 1}/${answered.length}] Synthesizing guide for ${answers.path}...`);
+    
+    const prompt = buildSynthesisPrompt(answers);
+    const draftPath = join(draftsDir, `${answers.path.replace(/\//g, '__')}.md`);
+    
+    try {
+      // Use Claude Code to generate the draft
+      const result = await updateGuideFile(draftPath, prompt, llmConfig);
+      
+      if (result.success) {
+        console.log(`  ✓ [${i + 1}/${answered.length}] Draft created: ${draftPath}`);
+        
+        // Update question pack status in DB
+        try {
+          const qpId = parseInt(file.split('__')[0]) || 0;
+          if (qpId > 0) {
+            const draft = readFileSync(draftPath, 'utf-8');
+            updateQuestionPack(qpId, {
+              status: 'synthesized',
+              synthesized_draft: draft
+            });
+          }
+        } catch {}
+      } else {
+        console.error(`  ✗ [${i + 1}/${answered.length}] Failed: ${result.error}`);
+      }
+    } catch (error: any) {
+      console.error(`  ✗ [${i + 1}/${answered.length}] Error: ${error.message}`);
+    }
+  }
+  
+  console.log(`\n✅ Generated ${answered.length} draft guide(s) in .intent/drafts/\n`);
+  console.log('Next steps:');
+  console.log('  1. Review drafts in .intent/drafts/');
+  console.log('  2. Move accepted drafts to target directories:');
+  console.log('     mv .intent/drafts/app__backend__db.md app/backend/db/agents.md');
+  console.log('  3. git add and commit\n');
 }
 
 // Show help
@@ -311,6 +421,7 @@ COMMANDS
     --layered           Use bottom-up layer-by-layer workflow (recommended)
   
   onboard             Scan project and generate question packs for missing guides
+  synthesize          Generate draft guides from answered question packs
 
   help                Show this message
   version             Show version
@@ -366,6 +477,10 @@ async function main() {
     
     case 'onboard':
       await onboard();
+      break;
+    
+    case 'synthesize':
+      await synthesize();
       break;
     
     case 'version':

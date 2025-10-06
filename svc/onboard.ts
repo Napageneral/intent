@@ -423,3 +423,94 @@ export function parseQuestionPackAnswers(markdown: string): ParsedAnswers | null
   };
 }
 
+/**
+ * Build a synthesis prompt for Claude Code to generate a draft guide
+ */
+export function buildSynthesisPrompt(answers: ParsedAnswers, sampleCode?: string): string {
+  return `You are generating a concise, actionable engineering guide (agents.md) for: ${answers.path}
+
+## Answered Questions
+
+**Intent & Purpose:**
+${answers.intent}
+
+**Golden Path (Common Use Case):**
+${answers.golden_path}
+
+**Invariants & Constraints:**
+${answers.invariants}
+
+**Inputs:**
+${answers.inputs}
+
+**Outputs:**
+${answers.outputs}
+
+**Success Signals:**
+${answers.signals}
+
+**Pitfalls & Gotchas:**
+${answers.pitfalls}
+
+**Related Areas:**
+${answers.related}
+
+${answers.security ? `**Security:**\n${answers.security}\n` : ''}
+${answers.notes ? `**Notes:**\n${answers.notes}\n` : ''}
+${sampleCode ? `\n## Sample Code\n\`\`\`\n${sampleCode}\n\`\`\`\n` : ''}
+
+---
+
+## Your Task
+
+Generate a concise agents.md file (under 300 lines) following this structure:
+
+# ${answers.path}
+
+## Purpose
+
+[One paragraph from Intent & Purpose above]
+
+## Golden Path
+
+[Minimal steps from Golden Path above - bullet points with code snippets if relevant]
+
+## Inputs & Outputs
+
+**Inputs:**
+[From answers]
+
+**Outputs:**
+[From answers]
+
+## Success Signals
+
+[From answers - actual log lines, metric names, event types]
+
+## Invariants
+
+[From answers - what must always be true]
+
+## Pitfalls
+
+**Don't:**
+[From answers - anti-patterns as bullet points]
+
+## Related
+
+[From answers - links to other guides]
+
+${answers.security ? '## Security\n\n[From answers]\n' : ''}
+
+---
+
+**Guidelines:**
+- Be concise and actionable (prefer bullets over paragraphs)
+- Reference actual observable signals (logs, metrics, events)
+- Focus on the 80% use case
+- Link to related guides, don't duplicate
+- Keep under 300 lines
+
+Output ONLY the markdown guide. No preamble, no explanation.`;
+}
+

@@ -53,7 +53,6 @@ If the guide is already 100% accurate (rare), you may skip editing. Otherwise, y
         model: modelName,
         maxTurns: 20, // Allow enough turns for read -> think -> write workflow
         settingSources: ['user', 'project', 'local'],
-        workingDirectory: config.workingDirectory,
         systemPrompt: `You are a documentation maintenance agent. 
 
 CRITICAL: You MUST use read_file and edit_file tools to update documentation.
@@ -70,13 +69,7 @@ Do NOT just describe changes - you must actually edit the file using tools.`,
         }
       }
     })) {
-      if (message.type === 'tool_use') {
-        // Track all tool operations for debugging
-        console.log(`    [Claude Code] Using tool: ${message.tool}`);
-        if (message.tool === 'write_file' || message.tool === 'edit_file') {
-          hadChanges = true;
-        }
-      } else if (message.type === 'result') {
+      if (message.type === 'result') {
         if (message.subtype === 'success') {
           const result = message.result?.toLowerCase() || '';
           if (result.includes('no-changes') || result.includes('no changes')) {
@@ -254,7 +247,6 @@ Write the file and confirm completion.`;
         model: modelName,
         maxTurns: 20,
         settingSources: ['user', 'project', 'local'],
-        workingDirectory: config.workingDirectory,
         systemPrompt: 'You are a technical writer generating and saving Architecture Decision Records.',
         stderr: (data: string) => {
           errorDetails += data;
