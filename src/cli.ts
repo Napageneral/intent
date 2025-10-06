@@ -1,9 +1,11 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 /**
  * Intent CLI - Engineering Guide & ADR Automation
  * 
  * A user-installed tool for maintaining agents.md and decision records
  * across any codebase in any language.
+ * 
+ * Requires: Bun (https://bun.sh)
  */
 
 import { spawn, execSync } from 'child_process';
@@ -214,6 +216,84 @@ async function update() {
   }
 }
 
+// Onboard command - scan and generate question packs
+async function onboard() {
+  const { scanProject, generateQuestionPack } = await import('../svc/onboard');
+  const { insertQuestionPack, insertCoverageCandidate } = await import('../store/db');
+  const { writeFileSync, mkdirSync, existsSync } = await import('fs');
+  const { join } = await import('path');
+  
+  console.log('🔍 Scanning project for guide candidates...\n');
+  
+  const projectRoot = process.cwd();
+  const summary = scanProject(projectRoot, 4);
+  
+  console.log(`📊 Coverage Summary:`);
+  console.log(`  Total candidate directories: ${summary.total_dirs}`);
+  console.log(`  Strong candidates (score > 0.4): ${summary.candidates.length}`);
+  console.log(`  Existing guides: ${summary.existing_guides.length}`);
+  console.log(`  Coverage: ${summary.coverage_percent}%\n`);
+  
+  // Save coverage summary
+  const intentDir = join(projectRoot, '.intent');
+  const coveragePath = join(intentDir, 'coverage.json');
+  writeFileSync(coveragePath, JSON.stringify(summary, null, 2));
+  console.log(`✅ Saved coverage report: ${coveragePath}\n`);
+  
+  // Store candidates in database
+  for (const candidate of summary.candidates) {
+    try {
+      insertCoverageCandidate({
+        path: candidate.path,
+        score: candidate.score,
+        reason_tags: JSON.stringify(candidate.reasons),
+        has_guide: candidate.has_guide ? 1 : 0,
+        status: candidate.has_guide ? 'applied' : 'pending',
+      });
+    } catch {}
+  }
+  
+  // Generate question packs for candidates without guides
+  const needsGuides = summary.candidates.filter(c => !c.has_guide);
+  
+  if (needsGuides.length === 0) {
+    console.log('✨ All strong candidates already have guides!');
+    return;
+  }
+  
+  console.log(`📝 Generating question packs for ${needsGuides.length} candidate(s)...\n`);
+  
+  const questionsDir = join(intentDir, 'questions');
+  if (!existsSync(questionsDir)) {
+    mkdirSync(questionsDir, { recursive: true });
+  }
+  
+  for (const candidate of needsGuides) {
+    const questionPack = generateQuestionPack(candidate, projectRoot);
+    const fileName = `${candidate.path.replace(/\//g, '__')}.md`;
+    const filePath = join(questionsDir, fileName);
+    
+    writeFileSync(filePath, questionPack);
+    console.log(`  ✓ ${candidate.path} (score: ${candidate.score.toFixed(2)})`);
+    
+    // Store in database
+    try {
+      insertQuestionPack({
+        guide_path: candidate.path,
+        status: 'draft',
+        content_md: questionPack,
+      });
+    } catch {}
+  }
+  
+  console.log(`\n✅ Generated ${needsGuides.length} question pack(s) in .intent/questions/\n`);
+  console.log('Next steps:');
+  console.log('  1. Review and answer questions in .intent/questions/*.md');
+  console.log('  2. Run: intent synthesize (coming soon)');
+  console.log('  3. Review generated draft guides');
+  console.log('  4. Accept and commit\n');
+}
+
 // Show help
 function showHelp() {
   console.log(`
@@ -224,10 +304,13 @@ USAGE
 
 COMMANDS
   init                Initialize Intent in current project
+  
   update [scope]      Update guides for changed files
     scope: staged (default) | head | pr
     --auto              Let Claude Code update files automatically
     --layered           Use bottom-up layer-by-layer workflow (recommended)
+  
+  onboard             Scan project and generate question packs for missing guides
 
   help                Show this message
   version             Show version
@@ -235,6 +318,11 @@ COMMANDS
 EXAMPLES
   # Initialize in new project
   intent init
+
+  # Onboard a new/legacy codebase
+  intent onboard
+  # Generates question packs in .intent/questions/
+  # Answer questions, then synthesize draft guides
 
   # Generate prompts only (manual review in Cursor)
   git add .
@@ -274,6 +362,10 @@ async function main() {
     
     case 'update':
       await update();
+      break;
+    
+    case 'onboard':
+      await onboard();
       break;
     
     case 'version':

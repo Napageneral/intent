@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "postinstall": "chmod +x dist/cli.js"
   },
   "keywords": [
     "documentation",
@@ -33,10 +34,10 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "bun-types": "^1.2.23",
     "typescript": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
   }
 }
-
