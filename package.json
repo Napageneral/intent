@@ -1,0 +1,40 @@
+{
+  "name": "@tylerhoecker/intent",
+  "version": "0.1.0",
+  "description": "Automated engineering guide (agents.md) and ADR maintenance for any codebase",
+  "main": "dist/index.js",
+  "bin": {
+    "intent": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "prepublish": "npm run build"
+  },
+  "keywords": [
+    "documentation",
+    "engineering",
+    "agents.md",
+    "adr",
+    "cursor",
+    "llm"
+  ],
+  "author": "Tyler Hoecker",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "core",
+    "templates",
+    "README.md"
+  ],
+  "dependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+
