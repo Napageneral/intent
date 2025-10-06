@@ -125,10 +125,10 @@ git add .
 ### 2. Create ADR
 ```bash
 # Find next number
-ls scripts/intent/decisions/ | grep -E '^[0-9]+' | sort -n | tail -1
+ls .intent/decisions/ | grep -E '^[0-9]+' | sort -n | tail -1
 
 # Create new ADR
-touch scripts/intent/decisions/NNN-your-title.md
+touch .intent/decisions/NNN-your-title.md
 
 # Use template from README.md
 ```
@@ -138,7 +138,7 @@ touch scripts/intent/decisions/NNN-your-title.md
 # In commit message
 git commit -m "feat: context GUI-only selection
 
-See: ADR-001 (scripts/intent/decisions/001-context-gui-only.md)
+See: ADR-001 (.intent/decisions/001-context-gui-only.md)
 
 Docs-Reviewed: yes"
 ```

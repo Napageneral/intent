@@ -1,0 +1,13 @@
+{
+  "projectName": "intent-tool",
+  "adrDirectory": ".intent/decisions",
+  "agentsFiles": [
+    "agents.md",
+    "CLAUDE.md"
+  ],
+  "autoGenerateADRs": false,
+  "llm": {
+    "provider": "anthropic",
+    "model": "claude-sonnet-4-5"
+  }
+}

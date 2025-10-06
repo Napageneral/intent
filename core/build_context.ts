@@ -8,7 +8,7 @@
  * - Git metadata (branch, sha, remote URL)
  * - List of changed files
  * 
- * Output: .proposed-intent/<guide-path-sanitized>.context.json
+ * Output: .intent/.proposed-intent/<guide-path-sanitized>.context.json
  * 
  * Usage:
  *   bun detect_changes.ts | bun build_context.ts
@@ -65,7 +65,7 @@ function main() {
   const input = readFileSync(0, 'utf-8'); // Read from stdin
   const payload = JSON.parse(input);
   
-  const outDir = join(REPO_ROOT, '.proposed-intent');
+  const outDir = join(REPO_ROOT, '.intent/.proposed-intent');
   if (!existsSync(outDir)) {
     mkdirSync(outDir, { recursive: true });
   }

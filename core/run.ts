@@ -114,7 +114,7 @@ log(`${BOLD}Next steps:${RESET}`);
 log('1. Open each .prompt.md file in Cursor');
 log('2. Paste into an LLM chat (or let Cursor\'s agent process it)');
 log('3. Save the returned patch as .patch (same directory, same stem)');
-log(`4. Apply patches: ${YELLOW}git apply --index .proposed-intent/*.patch${RESET}`);
+log(`4. Apply patches: ${YELLOW}git apply --index .intent/.proposed-intent/*.patch${RESET}`);
 log('');
 log('Or use Cursor commands:');
 log(`  ${YELLOW}/intent${RESET}        - Process all prompts automatically`);

@@ -91,7 +91,7 @@ export async function processPrompts(options: ProcessOptions) {
 // CLI entry point
 if (import.meta.main) {
   const workingDir = process.env.USER_CWD || process.cwd();
-  const promptsDir = process.argv[2] || join(workingDir, '.proposed-intent');
+  const promptsDir = process.argv[2] || join(workingDir, '.intent/.proposed-intent');
   const model = process.argv[3] || 'claude-sonnet-4-5';
   
   processPrompts({ promptsDir, model })

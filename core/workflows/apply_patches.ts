@@ -53,7 +53,7 @@ export function applyPatches(patchesDir: string) {
 // CLI entry point
 if (import.meta.main) {
   const workingDir = process.env.USER_CWD || process.cwd();
-  const patchesDir = process.argv[2] || join(workingDir, '.proposed-intent');
+  const patchesDir = process.argv[2] || join(workingDir, '.intent/.proposed-intent');
   
   if (!existsSync(patchesDir)) {
     console.error('❌ Directory not found:', patchesDir);

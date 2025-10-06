@@ -4,8 +4,4 @@ dist/
 .DS_Store
 .env
 *.db
-.proposed-intent/
-
-# Intent's own working files
-.intent/
-
+.intent/.proposed-intent/

@@ -155,7 +155,7 @@ export async function updateGuidesParallel(
 
 /**
  * Generate and save an ADR document using Claude Code
- * Agent will create the file directly in the decisions/ directory
+ * Agent will create the file directly in the .intent/decisions/ directory
  */
 export async function generateAndSaveADR(
   adrPath: string,

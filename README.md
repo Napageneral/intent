@@ -44,9 +44,9 @@ git add .
 intent update
 
 # 5. Open prompts in Cursor
-# Check .proposed-intent/*.prompt.md
+# Check .intent/.proposed-intent/*.prompt.md
 # Let Cursor/LLM generate patches
-# Apply patches: git apply .proposed-intent/*.patch
+# Apply patches: git apply .intent/.proposed-intent/*.patch
 
 # 6. Commit everything
 git commit -m "feat: new feature
@@ -63,11 +63,12 @@ When you run `intent init`, it creates:
 your-project/
 ├── .intent/
 │   ├── config.json           # Project settings
-│   └── decisions/            # Your ADRs go here
-│       ├── README.md         # ADR documentation
-│       └── TEMPLATE.md       # Copy this for new ADRs
-├── .proposed-intent/         # Generated prompts (gitignored)
-└── .gitignore                # Updated to ignore .proposed-intent/
+│   ├── decisions/            # Your ADRs go here
+│   │   ├── README.md         # ADR documentation
+│   │   └── TEMPLATE.md       # Copy this for new ADRs
+│   ├── docs/                 # Documentation files
+│   └── .proposed-intent/     # Generated prompts (gitignored)
+└── .gitignore                # Updated to ignore .intent/.proposed-intent/
 ```
 
 ## Commands
@@ -194,7 +195,7 @@ You are updating engineering guides and ADRs.
 
 Run: npx intent update --scope staged
 
-Review the generated prompts in .proposed-intent/ and create patches.
+Review the generated prompts in .intent/.proposed-intent/ and create patches.
 ```
 
 ## Works With Any Language
@@ -226,7 +227,8 @@ It only cares about:
 
 Intent uses itself! This repo has:
 - `agents.md` - How Intent works
-- `decisions/` - Why we made certain choices
+- `.intent/decisions/` - Why we made certain choices
+- `.intent/docs/` - Deep dive documentation
 
 Run `intent update` in this repo to see it in action.
 

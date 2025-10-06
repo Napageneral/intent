@@ -141,10 +141,10 @@ function initProject() {
   const gitignorePath = join(process.cwd(), '.gitignore');
   if (existsSync(gitignorePath)) {
     const gitignore = readFileSync(gitignorePath, 'utf-8');
-    if (!gitignore.includes('.proposed-intent/')) {
+    if (!gitignore.includes('.intent/.proposed-intent/')) {
       writeFileSync(
         gitignorePath,
-        gitignore + '\n# Intent working files\n.proposed-intent/\n'
+        gitignore + '\n# Intent working files\n.intent/.proposed-intent/\n'
       );
     }
   }
@@ -153,10 +153,8 @@ function initProject() {
   console.log('  ├── config.json          # Project settings');
   console.log('  ├── decisions/           # ADRs');
   console.log('  │   └── agents.md        # ADR guide + template');
-  console.log('  ├── state/               # Layer summaries');
-  console.log('  ├── runs/                # Run manifests');
-  console.log('  ├── questions/           # Onboarding question packs');
-  console.log('  └── drafts/              # Draft guides\n');
+  console.log('  ├── docs/                # Documentation');
+  console.log('  └── .proposed-intent/    # Working files (gitignored)\n');
   console.log('Next steps:');
   console.log('  1. Make code changes');
   console.log('  2. git add <files>');
@@ -184,7 +182,7 @@ async function update() {
     await runCore('run.ts', [scope]);
     
     if (!autoApply) {
-      console.log('\n✅ Done! Check .proposed-intent/ for generated prompts.');
+      console.log('\n✅ Done! Check .intent/.proposed-intent/ for generated prompts.');
       console.log('   Open them in Cursor to review and apply changes.');
       console.log('\n   Or run with --auto to generate and apply patches automatically:');
       console.log('   intent update --auto');
@@ -192,7 +190,7 @@ async function update() {
     }
     
     // Step 2: Let Claude Code update files directly (no patches!)
-    const promptsDir = join(process.cwd(), '.proposed-intent');
+    const promptsDir = join(process.cwd(), '.intent/.proposed-intent');
     const configPath = join(process.cwd(), '.intent/config.json');
     
     let model = 'claude-sonnet-4-5';

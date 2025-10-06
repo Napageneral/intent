@@ -32,7 +32,7 @@ const DEFAULT_IGNORE_PATTERNS = [
   'build',
   '.next',
   'bun.lock',
-  '.proposed-intent'
+  '.intent/.proposed-intent'
 ];
 
 export interface TreeNode {

@@ -103,7 +103,7 @@ export async function generateIntent(): Promise<IntentGenerationResult> {
 function generateCommitMessage(diff: string, guidesUpdated: string[]): string {
   // Extract changed files from diff
   const files = diff.match(/diff --git a\/([^\s]+)/g)?.map(m => m.replace('diff --git a/', '')) || [];
-  const codeFiles = files.filter(f => !f.endsWith('agents.md') && !f.endsWith('CLAUDE.md') && !f.includes('/decisions/'));
+  const codeFiles = files.filter(f => !f.endsWith('agents.md') && !f.endsWith('CLAUDE.md') && !f.includes('.intent/decisions/'));
   
   // Simple heuristic commit message
   const fileCount = codeFiles.length;

@@ -36,7 +36,7 @@ export async function getChanges(): Promise<{ files: FileChange[] }> {
           path: file,
           additions: adds,
           deletions: dels,
-          is_guide: file.endsWith('agents.md') || file.endsWith('CLAUDE.md') || file.includes('/decisions/')
+          is_guide: file.endsWith('agents.md') || file.endsWith('CLAUDE.md') || file.includes('.intent/decisions/')
         });
       } catch {}
     }

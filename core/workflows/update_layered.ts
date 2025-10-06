@@ -161,7 +161,7 @@ async function run() {
     
     // 4d) Process prompts with Claude Code (direct editing, parallel per layer)
     log(`  🤖 Updating guides with Claude Code...\n`);
-    const promptsDir = join(WORKING_DIR, '.proposed-intent');
+    const promptsDir = join(WORKING_DIR, '.intent/.proposed-intent');
     
     try {
       sh(`bun ${join(intentToolRoot, 'core', 'workflows', 'process_prompts.ts')} "${promptsDir}" "${MODEL}"`);
