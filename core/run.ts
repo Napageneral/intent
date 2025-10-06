@@ -22,8 +22,18 @@ const REPO_ROOT = execSync('git rev-parse --show-toplevel', {
   cwd: WORKING_DIR 
 }).trim();
 
-// Determine scope
-const SCOPE = process.env.INTENT_SCOPE || 'staged';
+// Determine scope: argv takes precedence over env
+function normalizeScope(s?: string): string | undefined {
+  if (!s) return undefined;
+  if (s === 'pr') return 'against_origin_main';
+  if (s === 'staged' || s === 'head' || s === 'against_origin_main') return s;
+  return undefined;
+}
+
+const argvScope = process.argv[2];
+const SCOPE = normalizeScope(process.env.INTENT_SCOPE) 
+           || normalizeScope(argvScope) 
+           || 'staged';
 const QUIET = process.env.INTENT_QUIET === '1';
 
 // Color output (if terminal)

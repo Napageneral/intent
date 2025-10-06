@@ -17,9 +17,18 @@ const args = process.argv.slice(3);
 
 // Helper to run core scripts
 function runCore(script: string, scriptArgs: string[] = []) {
+  // Check Bun is available
+  try {
+    execSync('bun --version', { stdio: 'ignore' });
+  } catch {
+    console.error('❌ Bun is required to run Intent. Install from https://bun.sh');
+    process.exit(1);
+  }
+
   const intentToolRoot = join(__dirname, '..');
   const corePath = join(intentToolRoot, 'core', script);
   const userCwd = process.cwd();
+  
   // Load project config to propagate API keys if present
   let projectAnthropicKey: string | undefined;
   try {
@@ -37,12 +46,22 @@ function runCore(script: string, scriptArgs: string[] = []) {
       ...process.env,
       USER_CWD: userCwd,
     };
+    
+    // Set INTENT_SCOPE from first script arg if it's a valid scope
+    const scopeArg = scriptArgs[0];
+    if (scopeArg === 'pr') {
+      envVars.INTENT_SCOPE = 'against_origin_main';
+    } else if (scopeArg === 'staged' || scopeArg === 'head') {
+      envVars.INTENT_SCOPE = scopeArg;
+    }
+    
+    // Propagate API key
     if (process.env.ANTHROPIC_API_KEY) {
       envVars.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
     } else if (projectAnthropicKey) {
       envVars.ANTHROPIC_API_KEY = projectAnthropicKey;
     } else {
-      // As a last resort, try to read from user's login shell without persisting
+      // As a last resort, try to read from user's login shell
       try {
         const shellKey = execSync('/bin/zsh -lic "printenv ANTHROPIC_API_KEY"', {
           encoding: 'utf-8'
@@ -70,6 +89,10 @@ function runCore(script: string, scriptArgs: string[] = []) {
 function initProject() {
   const intentDir = join(process.cwd(), '.intent');
   const decisionsDir = join(intentDir, 'decisions');
+  const stateDir = join(intentDir, 'state');
+  const runsDir = join(intentDir, 'runs');
+  const questionsDir = join(intentDir, 'questions');
+  const draftsDir = join(intentDir, 'drafts');
   
   if (existsSync(intentDir)) {
     console.log('✓ .intent/ already exists');
@@ -78,9 +101,13 @@ function initProject() {
   
   console.log('🚀 Initializing Intent in this project...\n');
   
-  // Create directories
+  // Create directory structure
   mkdirSync(intentDir);
   mkdirSync(decisionsDir);
+  mkdirSync(stateDir);
+  mkdirSync(runsDir);
+  mkdirSync(questionsDir);
+  mkdirSync(draftsDir);
   
   // Copy ADR guide/template
   const templateSrc = join(__dirname, '../templates/decisions-agents.md');
@@ -122,8 +149,12 @@ function initProject() {
   
   console.log('✅ Created .intent/');
   console.log('  ├── config.json          # Project settings');
-  console.log('  └── decisions/');
-  console.log('      └── agents.md        # ADR guide + template + index\n');
+  console.log('  ├── decisions/           # ADRs');
+  console.log('  │   └── agents.md        # ADR guide + template');
+  console.log('  ├── state/               # Layer summaries');
+  console.log('  ├── runs/                # Run manifests');
+  console.log('  ├── questions/           # Onboarding question packs');
+  console.log('  └── drafts/              # Draft guides\n');
   console.log('Next steps:');
   console.log('  1. Make code changes');
   console.log('  2. git add <files>');
@@ -138,8 +169,15 @@ async function update() {
   const scope = args.find(a => ['staged', 'head', 'pr'].includes(a)) || 'staged';
   const autoApply = args.includes('--auto');
   const skipApply = args.includes('--skip-apply');
+  const layered = args.includes('layered') || args.includes('--layered');
   
   try {
+    // Use layered workflow if requested (bottom-up, layer-by-layer)
+    if (layered && autoApply) {
+      await runCore('workflows/update_layered.ts', [scope]);
+      return;
+    }
+    
     // Step 1: Generate prompts
     await runCore('run.ts', [scope]);
     
@@ -189,6 +227,7 @@ COMMANDS
   update [scope]      Update guides for changed files
     scope: staged (default) | head | pr
     --auto              Let Claude Code update files automatically
+    --layered           Use bottom-up layer-by-layer workflow (recommended)
 
   help                Show this message
   version             Show version
@@ -205,11 +244,15 @@ EXAMPLES
   git add .
   intent update --auto
 
+  # Use layered workflow (bottom-up, child → parent context)
+  git add .
+  intent update --auto --layered
+
   # Update for last commit
-  intent update head --auto
+  intent update head --auto --layered
 
   # Update for PR (against origin/main)
-  intent update pr --auto
+  intent update pr --auto --layered
 
 CONFIGURATION
   Edit .intent/config.json to customize:

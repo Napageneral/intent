@@ -16,26 +16,45 @@ intent/
 │   ├── cli.ts           # Main CLI entry point
 │   └── index.ts         # Programmatic API (future)
 ├── core/
-│   ├── detect_changes.ts    # Find changed files → affected guides
-│   ├── build_context.ts     # Build per-guide context bundles
-│   ├── make_prompts.ts      # Generate LLM-ready prompts
-│   └── run.ts               # Orchestrator
+│   ├── detect_changes.ts        # Find changed files → affected guides
+│   ├── build_context.ts         # Build per-guide context bundles
+│   ├── make_prompts.ts          # Generate LLM-ready prompts
+│   ├── run.ts                   # Simple orchestrator (flat)
+│   └── workflows/
+│       ├── build_tree.ts        # Build guide hierarchy & layers
+│       ├── update_layered.ts    # Layer-by-layer orchestrator
+│       ├── process_prompts.ts   # Claude Code direct editing
+│       └── apply_patches.ts     # Legacy patch application
+├── store/
+│   ├── schema.sql       # SQLite schema for runs/guides/ADRs
+│   └── db.ts            # Database wrapper (Bun.sqlite)
 └── templates/
-    ├── adr-readme.md        # Copied to user projects on init
-    └── adr-template.md      # Template for new ADRs
+    └── decisions-agents.md      # ADR guide + template
 ```
 
-### Data Flow
+### Data Flow (Layered Workflow)
 
 ```
-git diff → detect changes → find affected guides → build context → generate prompts
+git diff → detect changes → affected guides → build guide tree → compute layers (bottom-up)
                                                                          ↓
-user opens in Cursor ← .proposed-intent/*.prompt.md ← make prompts ← context bundles
-         ↓
-LLM generates patch
-         ↓
-git apply .proposed-intent/*.patch → updated agents.md
+                                         ┌──────────────────────────────┘
+                                         ↓
+                              For each layer (leaves → root):
+                                         ↓
+                         build context + child summaries → generate prompts
+                                         ↓
+                         Claude Code agents (parallel) → direct file editing
+                                         ↓
+                         record layer summary (diffs) → pass to parent layer
+                                         ↓
+                                    next layer...
 ```
+
+**Key Features:**
+- **Bottom-up processing**: Leaf guides update first, then parents see child changes
+- **Child context propagation**: Each layer's prompts include summaries of child updates
+- **Direct editing**: Claude Code agents read/write files directly (no patch juggling)
+- **Parallel per layer**: All guides in a layer update simultaneously
 
 ## User Workflow
 
@@ -53,24 +72,36 @@ intent init
 ```
 
 Creates:
-- `.intent/config.json` - Project-specific settings
-- `.intent/decisions/` - ADR directory
-- Updates `.gitignore`
+- `.intent/config.json` - Project-specific settings (model, edit policy, patterns)
+- `.intent/decisions/` - ADR directory with guide template
+- `.intent/state/` - Layer summaries for parent context
+- `.intent/runs/` - Run manifests (future)
+- `.intent/questions/` - Onboarding question packs (future)
+- `.intent/drafts/` - Draft guides (future)
+- `.intent/intent.db` - SQLite database (created on first run)
+- Updates `.gitignore` to exclude `.proposed-intent/`
 
 ### 3. Usage Loop
 ```bash
 # Make code changes
-git add .
+git add changed-files.ts
 
-# Generate update prompts
+# Option 1: Generate prompts only (manual review in Cursor)
 intent update
 
-# Review in Cursor
-# Apply patches
-git apply .proposed-intent/*.patch
+# Option 2: Automated layered workflow (recommended)
+intent update --auto --layered
 
-# Commit everything
-git commit -m "feat: ... \n\nDocs-Reviewed: yes"
+# This will:
+# - Detect changed files and affected guides  
+# - Build guide hierarchy and compute layers
+# - For each layer: build context, add child summaries, invoke Claude Code
+# - Claude Code agents read/write guides directly (parallel per layer)
+# - Store layer summaries in .intent/state/ for parent context
+
+# Review and commit
+git diff
+git commit -m "docs: update guides"
 ```
 
 ## Key Design Decisions
