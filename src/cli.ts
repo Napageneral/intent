@@ -465,6 +465,46 @@ LEARN MORE
 `);
 }
 
+// Smart default: no args → start server and open browser
+async function smartStart() {
+  const { spawn, execSync } = await import('child_process');
+  
+  // Check if server is already running
+  let serverRunning = false;
+  try {
+    const res = await fetch('http://localhost:5174/api/health');
+    serverRunning = res.ok;
+  } catch {}
+  
+  if (!serverRunning) {
+    console.log('🚀 Starting Intent server...\n');
+    const serverPath = join(__dirname, '../server/index.ts');
+    spawn('bun', ['run', serverPath], {
+      stdio: 'ignore',
+      detached: true,
+      cwd: join(__dirname, '..'),
+      env: {
+        ...process.env,
+        USER_CWD: process.cwd()
+      }
+    }).unref(); // Detach so it keeps running
+    
+    // Wait for server to start
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  
+  // Open browser
+  const url = 'http://localhost:5174';
+  console.log(`✨ Opening Intent at ${url}\n`);
+  
+  try {
+    // macOS
+    execSync(`open ${url}`, { stdio: 'ignore' });
+  } catch {
+    console.log(`   Open your browser to: ${url}`);
+  }
+}
+
 // Main
 async function main() {
   switch (command) {
@@ -485,7 +525,7 @@ async function main() {
       break;
     
     case 'serve':
-      // Start the HTTP server
+      // Start the HTTP server in foreground
       const { spawn } = await import('child_process');
       const serverPath = join(__dirname, '../server/index.ts');
       console.log('🚀 Starting Intent server...\n');
@@ -504,8 +544,12 @@ async function main() {
       break;
     
     case 'help':
-    case undefined:
       showHelp();
+      break;
+    
+    case undefined:
+      // No command → smart start (server + browser)
+      await smartStart();
       break;
     
     default:

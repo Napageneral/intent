@@ -4,7 +4,7 @@
   "description": "Automated engineering guide (agents.md) and ADR maintenance for any codebase",
   "main": "dist/index.js",
   "bin": {
-    "intent": "./dist/cli.js"
+    "intent": "./dist/src/cli.js"
   },
   "scripts": {
     "build": "tsc && cd web && vite build",
@@ -13,7 +13,7 @@
     "dev": "tsc --watch",
     "dev:web": "cd web && vite",
     "prepublish": "npm run build",
-    "postinstall": "chmod +x dist/cli.js"
+    "postinstall": "chmod +x dist/src/cli.js 2>/dev/null || true"
   },
   "keywords": [
     "documentation",

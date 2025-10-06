@@ -17,22 +17,52 @@ interface StatusData {
   };
 }
 
+interface ContextData {
+  project: {
+    name: string;
+    root: string;
+    has_intent: boolean;
+  };
+  changes: {
+    staged: string[];
+    unstaged: string[];
+    total: number;
+  };
+  affected_guides: {
+    path: string;
+    stale: boolean;
+    last_updated: string | null;
+  }[];
+  quick_actions: {
+    can_update: boolean;
+    has_staged: boolean;
+    has_unstaged: boolean;
+    guide_count: number;
+  };
+}
+
 export default function Dashboard() {
   const [status, setStatus] = useState<StatusData | null>(null);
+  const [context, setContext] = useState<ContextData | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   
   useEffect(() => {
-    fetchStatus();
+    fetchData();
+    const interval = setInterval(fetchData, 5000); // Refresh every 5s
+    return () => clearInterval(interval);
   }, []);
   
-  const fetchStatus = async () => {
+  const fetchData = async () => {
     try {
-      const res = await fetch('/api/status');
-      const data = await res.json();
-      setStatus(data);
+      const [statusRes, contextRes] = await Promise.all([
+        fetch('/api/status'),
+        fetch('/api/context')
+      ]);
+      setStatus(await statusRes.json());
+      setContext(await contextRes.json());
     } catch (error) {
-      console.error('Failed to fetch status:', error);
+      console.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }
@@ -66,12 +96,83 @@ export default function Dashboard() {
     ? ((status.guides.active / status.guides.total) * 100).toFixed(1)
     : '0';
   
+  const hasChanges = (context?.changes.total || 0) > 0;
+  const affectedCount = context?.affected_guides.length || 0;
+  
   return (
     <div className="container">
       <div className="page-header">
         <h1>Dashboard</h1>
-        <p>Engineering guide automation for {status?.project?.name || 'your project'}</p>
+        <p>Engineering guide automation for {context?.project.name || status?.project?.name || 'your project'}</p>
       </div>
+      
+      {/* Smart Context Panel - shows current changes */}
+      {hasChanges && (
+        <div className="card" style={{ marginBottom: '2rem', background: 'rgba(59, 130, 246, 0.1)', borderColor: 'var(--accent)' }}>
+          <h2 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>📝 Active Changes Detected</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Staged Files</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--success)' }}>
+                {context?.changes.staged.length || 0}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Unstaged Files</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--warning)' }}>
+                {context?.changes.unstaged.length || 0}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Affected Guides</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--accent)' }}>
+                {affectedCount}
+              </div>
+            </div>
+          </div>
+          
+          {affectedCount > 0 && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                Potentially Stale Guides:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {context?.affected_guides.map(g => (
+                  <span key={g.path} className="badge badge-warning" style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                    {g.path}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button 
+              className="btn btn-primary" 
+              onClick={() => startRun('staged')}
+              disabled={running || !context?.quick_actions.has_staged}
+              style={{ flex: 1 }}
+            >
+              {running ? '🤖 Running...' : '🚀 Update All Guides (Layered)'}
+            </button>
+            <button 
+              className="btn btn-secondary"
+              disabled={!hasChanges}
+            >
+              Review Changes
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {!hasChanges && context?.project.has_intent && (
+        <div className="card" style={{ marginBottom: '2rem', textAlign: 'center', padding: '2rem', background: 'var(--bg-tertiary)' }}>
+          <p style={{ color: 'var(--text-secondary)' }}>✨ No changes detected</p>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
+            Make code changes and they'll appear here automatically
+          </p>
+        </div>
+      )}
       
       <div className="grid grid-3">
         {/* Coverage Card */}

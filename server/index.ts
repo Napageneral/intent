@@ -16,6 +16,7 @@ import { getStatus } from './svc/status';
 import { getTree } from './svc/tree';
 import { diffGuide } from './svc/diff';
 import { startRun, getRunById, listRuns, runEventBus } from './svc/run';
+import { getContext } from './svc/context';
 
 const app = new Hono();
 
@@ -24,7 +25,7 @@ app.use('*', logger());
 app.use('*', cors());
 
 // Serve static files from dist/web (built frontend)
-app.use('/*', serveStatic({ root: './dist/web', index: 'index.html' }));
+app.use('/*', serveStatic({ root: './dist/web' }));
 
 // ===== ROUTES =====
 
@@ -33,6 +34,9 @@ app.get('/api/health', (c) => c.json({ status: 'ok', version: '0.1.0' }));
 
 // Status
 app.get('/api/status', (c) => c.json(getStatus()));
+
+// Context (smart detection)
+app.get('/api/context', async (c) => c.json(await getContext()));
 
 // Guide tree
 app.get('/api/tree', (c) => c.json(getTree()));
