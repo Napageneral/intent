@@ -9,17 +9,22 @@ import { Hono } from 'hono';
 import { serve } from 'bun';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { serveStatic } from 'hono/bun';
 
 // Services
 import { getStatus } from './svc/status';
 import { getTree } from './svc/tree';
 import { diffGuide } from './svc/diff';
+import { startRun, getRunById, listRuns, runEventBus } from './svc/run';
 
 const app = new Hono();
 
 // Middleware
 app.use('*', logger());
 app.use('*', cors());
+
+// Serve static files from dist/web (built frontend)
+app.use('/*', serveStatic({ root: './dist/web', index: 'index.html' }));
 
 // ===== ROUTES =====
 
@@ -41,10 +46,87 @@ app.get('/api/diff', async (c) => {
   return c.text(await diffGuide(path));
 });
 
-// Run management (TODO: implement)
-app.post('/api/run', (c) => c.json({ runId: 0, status: 'not_implemented' }, 501));
-app.get('/api/run/:id', (c) => c.json({ error: 'not_implemented' }, 501));
-app.get('/api/run/:id/stream', (c) => c.json({ error: 'not_implemented' }, 501));
+// Run management
+app.post('/api/run', async (c) => {
+  const scope = (c.req.query('scope') || 'staged') as 'staged' | 'head' | 'pr';
+  const layered = c.req.query('layered') !== 'false';
+  const model = c.req.query('model') || 'claude-sonnet-4-5';
+  
+  const result = await startRun({ scope, layered, model });
+  return c.json(result, 202);
+});
+
+app.get('/api/run/:id', (c) => {
+  const id = parseInt(c.req.param('id'));
+  const run = getRunById(id);
+  
+  if (!run) {
+    return c.json({ error: 'Run not found' }, 404);
+  }
+  
+  return c.json(run);
+});
+
+app.get('/api/runs', (c) => {
+  const limit = parseInt(c.req.query('limit') || '50');
+  const runs = listRuns(limit);
+  return c.json({ runs });
+});
+
+// SSE stream for run progress
+app.get('/api/run/:id/stream', async (c) => {
+  const id = c.req.param('id');
+  
+  c.header('Content-Type', 'text/event-stream');
+  c.header('Cache-Control', 'no-cache');
+  c.header('Connection', 'keep-alive');
+  
+  // Create a readable stream for SSE
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder();
+      
+      // Send initial connection message
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'connected', runId: id })}\n\n`));
+      
+      // Listen to run events
+      const handler = (event: any) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      };
+      
+      runEventBus.on(`run:${id}`, handler);
+      
+      // Cleanup on close
+      c.req.raw.signal.addEventListener('abort', () => {
+        runEventBus.off(`run:${id}`, handler);
+        try {
+          controller.close();
+        } catch {}
+      });
+      
+      // Send heartbeat every 15s to keep connection alive
+      const heartbeat = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(`: heartbeat\n\n`));
+        } catch {
+          clearInterval(heartbeat);
+        }
+      }, 15000);
+      
+      c.req.raw.signal.addEventListener('abort', () => {
+        clearInterval(heartbeat);
+      });
+    }
+  });
+  
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+});
 
 // Onboarding (TODO: implement)
 app.post('/api/onboard/scan', (c) => c.json({ error: 'not_implemented' }, 501));

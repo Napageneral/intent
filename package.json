@@ -7,8 +7,11 @@
     "intent": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cd web && vite build",
+    "build:cli": "tsc",
+    "build:web": "cd web && vite build",
     "dev": "tsc --watch",
+    "dev:web": "cd web && vite",
     "prepublish": "npm run build",
     "postinstall": "chmod +x dist/cli.js"
   },
@@ -32,11 +35,18 @@
     "@anthropic-ai/claude-agent-sdk": "^0.1.0",
     "@types/node": "^20.0.0",
     "hono": "^4.9.10",
+    "react-router-dom": "^7.9.3",
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
     "bun-types": "^1.2.23",
-    "typescript": "^5.0.0"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typescript": "^5.0.0",
+    "vite": "^7.1.9"
   },
   "engines": {
     "node": ">=18.0.0"
