@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "module": "commonjs",
+    "module": "esnext",
     "lib": ["ES2020"],
     "outDir": "./dist",
     "strict": true,
@@ -10,9 +10,10 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "declaration": true,
-    "types": ["bun-types"]
+    "types": ["bun-types"],
+    "moduleResolution": "bundler"
   },
-  "include": ["src/**/*", "store/**/*", "svc/**/*"],
+  "include": ["src/**/*", "store/**/*", "svc/**/*", "server/**/*"],
   "exclude": ["node_modules", "dist", "core"]
 }
 

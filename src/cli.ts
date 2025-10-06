@@ -422,6 +422,7 @@ COMMANDS
   
   onboard             Scan project and generate question packs for missing guides
   synthesize          Generate draft guides from answered question packs
+  serve               Start local HTTP server for GUI
 
   help                Show this message
   version             Show version
@@ -481,6 +482,21 @@ async function main() {
     
     case 'synthesize':
       await synthesize();
+      break;
+    
+    case 'serve':
+      // Start the HTTP server
+      const { spawn } = await import('child_process');
+      const serverPath = join(__dirname, '../server/index.ts');
+      console.log('🚀 Starting Intent server...\n');
+      spawn('bun', ['run', serverPath], {
+        stdio: 'inherit',
+        cwd: join(__dirname, '..'),
+        env: {
+          ...process.env,
+          USER_CWD: process.cwd()
+        }
+      });
       break;
     
     case 'version':
