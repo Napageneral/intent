@@ -6,7 +6,7 @@
  * across any codebase in any language.
  */
 
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 
@@ -16,12 +16,47 @@ const command = process.argv[2];
 const args = process.argv.slice(3);
 
 // Helper to run core scripts
-function runCore(script: string, args: string[] = []) {
-  const corePath = join(__dirname, '../core', script);
+function runCore(script: string, scriptArgs: string[] = []) {
+  const intentToolRoot = join(__dirname, '..');
+  const corePath = join(intentToolRoot, 'core', script);
+  const userCwd = process.cwd();
+  // Load project config to propagate API keys if present
+  let projectAnthropicKey: string | undefined;
+  try {
+    const cfgPath = join(userCwd, '.intent', 'config.json');
+    if (existsSync(cfgPath)) {
+      const cfg = JSON.parse(readFileSync(cfgPath, 'utf-8'));
+      projectAnthropicKey = cfg.llm?.apiKey || cfg.ANTHROPIC_API_KEY;
+    }
+  } catch {}
+  
   return new Promise((resolve, reject) => {
-    const proc = spawn('bun', ['run', corePath, ...args], {
+    // Run from intent-tool directory so modules resolve correctly
+    // Pass user's cwd as environment variable for scripts that need it
+    const envVars: NodeJS.ProcessEnv = {
+      ...process.env,
+      USER_CWD: userCwd,
+    };
+    if (process.env.ANTHROPIC_API_KEY) {
+      envVars.ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+    } else if (projectAnthropicKey) {
+      envVars.ANTHROPIC_API_KEY = projectAnthropicKey;
+    } else {
+      // As a last resort, try to read from user's login shell without persisting
+      try {
+        const shellKey = execSync('/bin/zsh -lic "printenv ANTHROPIC_API_KEY"', {
+          encoding: 'utf-8'
+        }).trim();
+        if (shellKey) {
+          envVars.ANTHROPIC_API_KEY = shellKey;
+        }
+      } catch {}
+    }
+
+    const proc = spawn('bun', ['run', corePath, ...scriptArgs], {
       stdio: 'inherit',
-      cwd: process.cwd(),
+      cwd: intentToolRoot, // Run from intent-tool directory
+      env: envVars
     });
     
     proc.on('close', (code) => {
@@ -47,17 +82,14 @@ function initProject() {
   mkdirSync(intentDir);
   mkdirSync(decisionsDir);
   
-  // Copy ADR templates
-  const templates = ['adr-readme.md', 'adr-template.md'];
-  templates.forEach(template => {
-    const src = join(__dirname, '../templates', template);
-    const dest = join(decisionsDir, template.replace('adr-', '').toUpperCase());
-    
-    if (existsSync(src)) {
-      const content = readFileSync(src, 'utf-8');
-      writeFileSync(dest, content);
-    }
-  });
+  // Copy ADR guide/template
+  const templateSrc = join(__dirname, '../templates/decisions-agents.md');
+  const templateDest = join(decisionsDir, 'agents.md');
+  
+  if (existsSync(templateSrc)) {
+    const content = readFileSync(templateSrc, 'utf-8');
+    writeFileSync(templateDest, content);
+  }
   
   // Create config
   const config = {
@@ -67,7 +99,7 @@ function initProject() {
     autoGenerateADRs: false,
     llm: {
       provider: 'anthropic',
-      model: 'claude-3-5-sonnet-20241022'
+      model: 'claude-sonnet-4-5'
     }
   };
   
@@ -91,8 +123,7 @@ function initProject() {
   console.log('✅ Created .intent/');
   console.log('  ├── config.json          # Project settings');
   console.log('  └── decisions/');
-  console.log('      ├── README.md        # ADR documentation');
-  console.log('      └── TEMPLATE.md      # Copy this for new ADRs\n');
+  console.log('      └── agents.md        # ADR guide + template + index\n');
   console.log('Next steps:');
   console.log('  1. Make code changes');
   console.log('  2. git add <files>');
@@ -104,14 +135,41 @@ function initProject() {
 async function update() {
   console.log('🔍 Detecting changes...\n');
   
-  const scope = args[0] || 'staged';
+  const scope = args.find(a => ['staged', 'head', 'pr'].includes(a)) || 'staged';
+  const autoApply = args.includes('--auto');
+  const skipApply = args.includes('--skip-apply');
   
   try {
-    // Run the core workflow
+    // Step 1: Generate prompts
     await runCore('run.ts', [scope]);
     
-    console.log('\n✅ Done! Check .proposed-intent/ for generated prompts.');
-    console.log('   Open them in Cursor to review and apply changes.');
+    if (!autoApply) {
+      console.log('\n✅ Done! Check .proposed-intent/ for generated prompts.');
+      console.log('   Open them in Cursor to review and apply changes.');
+      console.log('\n   Or run with --auto to generate and apply patches automatically:');
+      console.log('   intent update --auto');
+      return;
+    }
+    
+    // Step 2: Let Claude Code update files directly (no patches!)
+    const promptsDir = join(process.cwd(), '.proposed-intent');
+    const configPath = join(process.cwd(), '.intent/config.json');
+    
+    let model = 'claude-sonnet-4-5';
+    if (existsSync(configPath)) {
+      try {
+        const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+        model = config.llm?.model || model;
+      } catch {}
+    }
+    
+    console.log('\n🤖 Updating guides with Claude Code...\n');
+    await runCore('workflows/process_prompts.ts', [promptsDir, model]);
+    
+    console.log('\n🎉 All done! Your guides have been updated.');
+    console.log('   Review changes: git diff');
+    console.log('   Commit: git commit -m "docs: update guides"');
+    
   } catch (error: any) {
     console.error('❌ Error:', error.message);
     process.exit(1);
@@ -130,6 +188,7 @@ COMMANDS
   init                Initialize Intent in current project
   update [scope]      Update guides for changed files
     scope: staged (default) | head | pr
+    --auto              Let Claude Code update files automatically
 
   help                Show this message
   version             Show version
@@ -138,15 +197,19 @@ EXAMPLES
   # Initialize in new project
   intent init
 
-  # Update guides for staged changes
+  # Generate prompts only (manual review in Cursor)
   git add .
   intent update
 
-  # Update guides for last commit
-  intent update head
+  # Let Claude Code update files automatically
+  git add .
+  intent update --auto
 
-  # Update guides for PR (against origin/main)
-  intent update pr
+  # Update for last commit
+  intent update head --auto
+
+  # Update for PR (against origin/main)
+  intent update pr --auto
 
 CONFIGURATION
   Edit .intent/config.json to customize:

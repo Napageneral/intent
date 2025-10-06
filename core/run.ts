@@ -16,7 +16,11 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = execSync('git rev-parse --show-toplevel', { encoding: 'utf-8' }).trim();
+const WORKING_DIR = process.env.USER_CWD || process.cwd();
+const REPO_ROOT = execSync('git rev-parse --show-toplevel', { 
+  encoding: 'utf-8',
+  cwd: WORKING_DIR 
+}).trim();
 
 // Determine scope
 const SCOPE = process.env.INTENT_SCOPE || 'staged';
