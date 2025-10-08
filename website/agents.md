@@ -40,43 +40,11 @@ website/
 - **Single-line headlines** - whitespace-nowrap prevents awkward wrapping
 
 **Page Structure:**
-1. **Hero** - Thomas attractor particle system (GPU ping-pong) that stabilizes as user scrolls
-   - 65k particles rendered with WebGL shaders
-   - Chaos → order visual metaphor for Intent system
-   - Scroll controls "coherence" parameter (0.10 → 0.21)
+1. **Hero** - "Win the next decade" with bottom CTA row
 2. **Our Approach** - Context & Transformation cards
 3. **The Choice** - Emotional stark section
 4. **AI isn't scary** - Visual + social proof
 5. **Contact** - Dark form
-
-## Technical Implementation: GPU Particle System
-
-### Thomas Attractor with Ping-Pong FBOs
-
-The hero uses a GPU-compute approach to simulate 65,536 particles (256×256 texture):
-
-**Architecture:**
-- Two Frame Buffer Objects (ping/pong) alternate roles each frame
-- Compute shader updates particle positions based on Thomas attractor equations
-- Render shader displays particles as Points with size attenuation
-- Scroll position controls "coherence" parameter `a` (0.10 → 0.21)
-
-**Thomas Attractor Equations:**
-```glsl
-dx = (-a*x + sin(y)) * dt
-dy = (-a*y + sin(z)) * dt  
-dz = (-a*z + sin(x)) * dt
-```
-
-**Key Files:**
-- `components/AttractorHero.tsx` - Main component with GPU compute logic
-- Uses `@react-three/fiber` + `@react-three/drei` for Three.js/React integration
-- `framer-motion` for smooth scroll-driven parameter animation
-
-**Performance:**
-- ~60 FPS on most devices
-- Additive blending for glowing particle trails
-- Dynamic import with SSR disabled to avoid server-side Three.js issues
 
 ## Golden Paths
 
