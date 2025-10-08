@@ -136,13 +136,32 @@ Subject: `New inquiry (${interest}) — ${company} / ${name}`
 
 ## Testing Checklist
 
-**CRITICAL:** Always run production build test before pushing to ensure Vercel deployment will succeed:
+**🚨 CRITICAL - NEVER DEPLOY WITHOUT TESTING 🚨**
+
+**Required testing steps BEFORE any git push:**
+
+1. **Dev server test:**
 ```bash
-npm run build  # Must pass with no errors
+npm run dev
+# Visit http://localhost:3000
+# Verify page loads without errors
+# Check browser console for errors
+# Test scroll behavior, CTAs, forms
 ```
 
-**Dev Server Test:**
-Always verify the dev server runs successfully (`npm run dev`) before handing back to user. Test that http://localhost:3000 returns 200 and renders correctly.
+2. **Production build test:**
+```bash
+npm run build  # Must pass with no errors
+npm start      # Test production build locally
+```
+
+3. **Browser verification:**
+- Use browser tools to visually inspect
+- Check for console errors
+- Test on both desktop and mobile viewport
+- Verify all sections render correctly
+
+**If ANY test fails, DO NOT push to git.**
 
 **Design Verification:**
 - [ ] Hero text fits on one line (responsive sizing)
