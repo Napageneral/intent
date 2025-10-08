@@ -131,7 +131,13 @@ Subject: `New inquiry (${interest}) — ${company} / ${name}`
 
 ## Testing Checklist
 
-**IMPORTANT:** Always verify the dev server runs successfully (`npm run dev`) before handing back to user. Test that http://localhost:3000 returns 200 and renders correctly.
+**CRITICAL:** Always run production build test before pushing to ensure Vercel deployment will succeed:
+```bash
+npm run build  # Must pass with no errors
+```
+
+**Dev Server Test:**
+Always verify the dev server runs successfully (`npm run dev`) before handing back to user. Test that http://localhost:3000 returns 200 and renders correctly.
 
 **Design Verification:**
 - [ ] Hero text fits on one line (responsive sizing)
@@ -140,6 +146,11 @@ Subject: `New inquiry (${interest}) — ${company} / ${name}`
 - [ ] Header has increased padding (ml-4, mr-4, pt-4)
 - [ ] White text uses high contrast (#FFFFFF, #E5E5E5)
 - [ ] No corner brackets on hero section
+
+**Common Build Issues:**
+- ❌ `@vercel/analytics/next` → ✅ Use `@vercel/analytics/react` for Next.js App Router
+- ❌ Missing env vars in `.env.local` (won't break build but will break email)
+- ❌ Unescaped quotes in JSX strings
 
 Before deploying:
 - [ ] Dev server starts without errors (`npm run dev`)
