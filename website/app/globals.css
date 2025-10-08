@@ -6,12 +6,24 @@
   --radius: 10px;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html, body {
   height: 100%;
 }
 
 body {
   @apply antialiased text-gray-800 bg-white;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+@media (min-width: 768px) {
+  body {
+    font-size: 17px;
+  }
 }
 
 /* Subtle grid background */
@@ -22,5 +34,10 @@ body {
 
 .container-px {
   @apply px-6 md:px-8;
+}
+
+/* Smooth transitions for interactive elements */
+a, button {
+  @apply transition-colors duration-200;
 }
 
