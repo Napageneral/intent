@@ -76,7 +76,7 @@ export default function Page() {
         <div className="container-px max-w-7xl mx-auto">
           <div className="mb-16">
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-6">OUR APPROACH</p>
-            <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight whitespace-nowrap">
               <span className="text-yellow-400">Intent</span> helps you shift from AI-absent to AI-native.
             </h2>
           </div>
@@ -129,36 +129,36 @@ export default function Page() {
 
       {/* Stark call-out - The Choice */}
       <section className="relative min-h-screen flex items-center justify-center bg-black">
-        {/* Corner brackets - smaller like Tenex */}
-        <div className="absolute top-32 left-32 w-12 h-12 border-l border-t border-white/10"></div>
-        <div className="absolute top-32 right-32 w-12 h-12 border-r border-t border-white/10"></div>
-        <div className="absolute bottom-32 left-32 w-12 h-12 border-l border-b border-white/10"></div>
-        <div className="absolute bottom-32 right-32 w-12 h-12 border-r border-b border-white/10"></div>
+        {/* Corner brackets - Tenex style */}
+        <div className="absolute top-20 left-20 w-16 h-16 border-l-2 border-t-2 border-white/30"></div>
+        <div className="absolute top-20 right-20 w-16 h-16 border-r-2 border-t-2 border-white/30"></div>
+        <div className="absolute bottom-20 left-20 w-16 h-16 border-l-2 border-b-2 border-white/30"></div>
+        <div className="absolute bottom-20 right-20 w-16 h-16 border-r-2 border-b-2 border-white/30"></div>
         
-        <div className="container-px max-w-5xl text-left px-8 md:px-16">
-          <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-16" style={{ color: '#FFFFFF' }}>
+        <div className="container-px max-w-7xl text-left px-2 md:px-4">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-[1.15] mb-10" style={{ color: '#FFFFFF' }}>
             <span style={{ color: '#FFFFFF' }}>You have a choice.</span>
             <br />
-            <span style={{ color: '#FFFFFF' }}>Disrupt yourself.</span>
+            <span className="text-yellow-400">Disrupt yourself.</span>
             <br />
             <span style={{ color: '#FFFFFF' }}>Or be disrupted by <span className="text-yellow-400">others</span>.</span>
           </h2>
           
-          <div className="space-y-8 text-xl md:text-2xl leading-relaxed max-w-4xl" style={{ lineHeight: '1.6' }}>
-            <p style={{ color: '#CCCCCC' }}>
+          <div className="space-y-3 text-2xl md:text-3xl max-w-6xl" style={{ lineHeight: '1.4' }}>
+            <p style={{ color: '#FFFFFF' }}>
               Because as the cost of intelligence approaches zero, businesses will need to transition from AI-absent to AI-native if they want to stay relevant and succeed.
             </p>
             
-            <p style={{ color: '#CCCCCC' }}>
-              You could drive that transformation from within. Our bet is, you won't. Not because you don't want to. Not because you don't believe it's necessary. But because you're focused on <span style={{ color: '#FFFFFF', fontWeight: 600 }}>business success, today</span>.
+            <p style={{ color: '#FFFFFF' }}>
+              You could drive that transformation from within. Our bet is, you won't. Not because you don't want to. Not because you don't believe it's necessary. But because you're focused on <span style={{ fontWeight: 600 }}>business success, today</span>.
             </p>
             
-            <p style={{ color: '#888888' }}>
+            <p style={{ color: '#FFFFFF' }}>
               We don't care about today. We care about the next decade. And helping you win it.
             </p>
           </div>
           
-          <div className="mt-16">
+          <div className="mt-10">
             <a 
               href="#contact" 
               className="inline-flex items-center gap-2 bg-white text-black px-8 py-4 font-semibold hover:bg-yellow-400 transition-all duration-200 group text-lg"

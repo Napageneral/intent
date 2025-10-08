@@ -26,13 +26,18 @@ website/
 **Stark, Emotional, Minimal** - The landing page is designed to make visitors *feel* something, not explain everything.
 
 **Key Principles:**
-- All-black backgrounds with yellow accent (#FFD700)
-- Massive, bold typography (up to text-9xl)
-- Monospace fonts for hero text (technical/pixelated feel)
-- Minimal chrome (simple header + hamburger)
-- Corner brackets on major sections
-- Horizontal CTA rows (not centered buttons)
-- Full-screen sections (min-h-screen)
+- **All-black backgrounds** with yellow accent (#FFD700 / text-yellow-400)
+- **Massive, bold typography** - Hero up to text-8xl, body text-3xl
+- **Monospace fonts** for hero text (technical/pixelated feel with glow)
+- **Pure white text** (#FFFFFF) for maximum contrast and readability
+- **Minimal chrome** - Transparent header with logo + hamburger, no sticky nav
+- **Prominent corner brackets** - w-16 h-16 border-2 border-white/30 on key sections
+- **Sharp edges everywhere** - No rounded corners on any CTAs or buttons
+- **Wide layouts** - max-w-7xl containers with minimal padding (px-2 md:px-4)
+- **Tight line spacing** - lineHeight: 1.4 for compact, impactful text blocks
+- **Horizontal CTA rows** - Text | divider | button layout (Tenex style)
+- **Full-screen sections** - min-h-screen for dramatic scroll moments
+- **Single-line headlines** - whitespace-nowrap prevents awkward wrapping
 
 **Page Structure:**
 1. **Hero** - "Win the next decade" with bottom CTA row
