@@ -1,0 +1,39 @@
+{
+  "guides": [
+    {
+      "path": "agents.md",
+      "scope": "project",
+      "description": "Website overview - Intent Systems landing page architecture"
+    },
+    {
+      "path": "app/agents.md",
+      "scope": "layer",
+      "description": "Next.js App Router pages and API routes"
+    },
+    {
+      "path": "components/agents.md",
+      "scope": "layer",
+      "description": "Reusable React components"
+    },
+    {
+      "path": "lib/agents.md",
+      "scope": "layer",
+      "description": "Business logic - email, validation"
+    }
+  ],
+  "verification": {
+    "enabled": true,
+    "checks": [
+      "env-vars",
+      "api-routes",
+      "component-exports"
+    ]
+  },
+  "patterns": {
+    "component_style": "functional with TypeScript",
+    "state_management": "React hooks",
+    "styling": "Tailwind CSS utility classes",
+    "validation": "Zod schemas"
+  }
+}
+
