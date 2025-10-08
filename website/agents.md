@@ -46,6 +46,37 @@ website/
 4. **AI isn't scary** - Visual + social proof
 5. **Contact** - Dark form
 
+## Hero Visual — GPU Attractor (current state)
+
+We are building a Thomas attractor background that becomes more coherent as the user scrolls.
+
+Implementation (current):
+- React Three Fiber `Canvas` with manual ping‑pong FBOs (`THREE.WebGLRenderTarget`) storing particle positions
+- 62,500 particles (250×250) updated in a compute fragment shader using Thomas equations
+- Render as `Points` in a custom shader, color modes: `solid`, `radius` (default), `angular`
+- Scroll (`framer-motion` spring) controls parameter `a` to move from chaotic → coherent
+- Dynamic import with `ssr: false`; the hero is a client component to avoid SSR/Three issues
+- Current scene scaling: attractor positions scaled 10×, camera ~z=60 for a wider view
+
+What matches the reference:
+- Chaotic → coherent motion (Thomas attractor), scroll‑driven
+- Fine, high‑density particle field with blue→cyan→white gradient
+
+What does NOT yet match the reference (open issues):
+- The reference shows extremely fine, continuous “hairline” trails; our points create visibly solid ends (“sausages”).
+- The attractor feels small relative to the viewport unless the camera is moved; increasing point size makes ends look solid.
+- We occasionally see `THREE.WebGLRenderer: Context Lost` during HMR; this is a dev‑only artifact but noisy.
+
+Planned improvements (next steps):
+- Trails via accumulation buffer: render into an accumulation FBO each frame with decay (e.g., `accum = accum * 0.96 + currentPoints` using additive blending), then present to screen. This produces hairline trails without increasing point size.
+- Alternative trails: keep a “previous positions” texture and draw line segments from prev→curr (requires a second positions FBO and a line rendering pass).
+- Scale without zoom: add a uniform `uScale` and multiply positions in the vertex shader, or apply a parent transform scale to the `points` node. This enlarges the attractor on screen without changing camera or point size.
+- Tunables to expose for art direction: `SIZE` (density), `uPointSize`, `uScale`, `coherence mapping`, color palette.
+
+Testing notes:
+- When changing shader code, perform a hard reload to avoid HMR context loss.
+- Keep dpr `[1,2]`; avoid antialias to preserve crisp trails with accumulation.
+
 ## Golden Paths
 
 ### Deploy to Production

@@ -126,5 +126,10 @@ No shared dependencies at root (keeps deploys clean).
 
 ---
 
-**Status:** Active development. Website live at intent-systems.com. First pilots in Q1 2025.
+**Status:** Active development.
+
+### Current Focus (Oct 2025)
+- Website hero visual: GPU Thomas attractor (Three.js + R3F) with scroll‑driven coherence
+- Challenges: matching reference’s ultra‑fine hairline trails and large on‑screen scale without visual “solid” ends
+- Next step: implement accumulation/trail rendering pass and screen‑space scaling without changing camera
 

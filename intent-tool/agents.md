@@ -312,6 +312,11 @@ Our ADRs are in `decisions/` and document key choices like:
 - Why language-agnostic approach
 - Why user-installed not project-specific
 
+### Monorepo Integration Notes (Website Work)
+- The website’s hero visual work (GPU attractor) is tracked in `website/agents.md`.
+- Open issues are summarized in the root `agents.md` under Current Focus.
+- Use `intent update --layered` from repo root to propagate hero changes into the correct guides (website layer first, then root).
+
 ## Philosophy
 
 **Good documentation is:**
