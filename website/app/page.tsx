@@ -1,321 +1,297 @@
-import Logo from '@/components/Logo';
-import SectionHeading from '@/components/SectionHeading';
-import FeatureCard from '@/components/FeatureCard';
-import MetricCard from '@/components/MetricCard';
 import ContactForm from '@/components/ContactForm';
-import PrimaryButton from '@/components/PrimaryButton';
 
 export default function Page() {
   return (
     <main>
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-gray-200/60 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto max-w-7xl container-px flex h-16 items-center justify-between">
-          <Logo />
-          <nav className="hidden lg:flex items-center gap-8 text-sm text-gray-600">
-            <a href="#how" className="hover:text-gray-900 transition-colors">How it works</a>
-            <a href="#outcomes" className="hover:text-gray-900 transition-colors">Outcomes</a>
-            <a href="#install" className="hover:text-gray-900 transition-colors">What we install</a>
-            <a href="#security" className="hover:text-gray-900 transition-colors">Security</a>
-          </nav>
-          <PrimaryButton href="#contact" className="hidden md:inline-flex">Get the Assessment</PrimaryButton>
+      {/* Header - Minimal Tenex style */}
+      <header className="absolute top-0 left-0 right-0 z-50 bg-transparent">
+        <div className="container-px flex h-24 items-center justify-between pt-4">
+          <div className="flex items-center gap-2 ml-4">
+            <div className="h-6 w-6 bg-gradient-to-br from-yellow-400 to-yellow-600" />
+            <span className="font-semibold tracking-tight text-lg" style={{ color: '#FFFFFF' }}>
+              Intent <span className="text-yellow-400">Systems</span>
+            </span>
+          </div>
+          
+          {/* Hamburger menu */}
+          <button className="flex flex-col gap-1.5 p-2 mr-4" aria-label="Menu">
+            <span className="h-0.5 w-6 bg-white"></span>
+            <span className="h-0.5 w-6 bg-white"></span>
+            <span className="h-0.5 w-6 bg-white"></span>
+          </button>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="relative isolate overflow-hidden">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,rgba(22,95,230,0.08),transparent_50%)]" />
-        <div className="mx-auto max-w-7xl container-px py-24 md:py-32">
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-            <div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-gray-900 leading-[1.1]">
-                Make AI effective on your <span className="text-brand-600">legacy code</span>.
-              </h1>
-              <p className="mt-6 text-lg md:text-xl text-gray-700 leading-relaxed">
-                We turn your codebase into <strong>agent‑ready context</strong>—and train your teams to keep it that way.
-                In 30 days, agents go from guessing to shipping safe changes your leads would approve.
-              </p>
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <PrimaryButton href="#contact" className="text-base">
-                  Request the Assessment
-                </PrimaryButton>
-                <a href="#contact" className="inline-flex items-center justify-center rounded-md border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                  Book a 20‑min fit call
-                </a>
+      {/* Hero - Stark Tenex style */}
+      <section className="relative min-h-screen flex items-center justify-center bg-black pt-20">
+        {/* Background placeholder - you can add gif/visual here */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black z-0">
+          {/* Placeholder for visual - can be replaced with video/gif */}
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.15),transparent_70%)]"></div>
+        </div>
+        
+        <div className="relative z-10 container-px text-center max-w-7xl -mt-32">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[0.85] whitespace-nowrap" style={{ fontFamily: 'monospace', letterSpacing: '-0.02em', textShadow: '0 0 40px rgba(255,215,0,0.3)', color: '#FFFFFF', fontWeight: 900 }}>
+            Win the <span className="text-yellow-400" style={{ textShadow: '0 0 50px rgba(255,215,0,0.6)' }}>next decade.</span>
+          </h1>
+        </div>
+        
+        {/* Bottom CTA row - Tenex style */}
+        <div className="absolute bottom-16 left-0 right-0 z-10">
+          <div className="container-px max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-8">
+              {/* Left: Tagline */}
+              <div className="text-left flex-1 max-w-xl">
+                <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mb-0.5" style={{ color: '#FFFFFF' }}>
+                  Your <span className="text-yellow-400">AI transformation</span> partner.
+                </h2>
+                <p className="text-sm md:text-base" style={{ color: '#E5E5E5' }}>
+                  We set & execute your enterprise AI strategy at startup speed.
+                </p>
               </div>
               
-              {/* Logo wall placeholder */}
-              <div className="mt-10 opacity-75">
-                <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">Trusted by engineering leaders</p>
-                <div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-4">
-                  <div className="h-8 w-28 bg-gray-200 rounded opacity-60" />
-                  <div className="h-8 w-28 bg-gray-200 rounded opacity-60" />
-                  <div className="h-8 w-28 bg-gray-200 rounded opacity-60" />
-                  <div className="h-8 w-28 bg-gray-200 rounded opacity-60" />
-                </div>
+              {/* Center: Divider */}
+              <div className="hidden md:block h-px flex-1 bg-white/20" style={{ maxWidth: '400px' }}></div>
+              
+              {/* Right: CTA */}
+              <div className="flex-shrink-0">
+                <a 
+                  href="#approach" 
+                  className="inline-flex items-center gap-2 bg-white text-black px-8 py-3.5 font-semibold hover:bg-yellow-400 transition-all duration-200 group"
+                  style={{ color: '#000000' }}
+                >
+                  Learn more
+                  <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
 
-            {/* Right: Layered context diagram */}
-            <div className="relative">
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
-                <div className="mb-4">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Layered Context System</div>
+      {/* Our Approach - Strategy/Context/Enablement */}
+      <section id="approach" className="relative bg-black py-32">
+        <div className="container-px max-w-7xl mx-auto">
+          <div className="mb-16">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-6">OUR APPROACH</p>
+            <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight max-w-3xl">
+              <span className="text-yellow-400">Intent</span> helps you shift from AI-absent to AI-native.
+            </h2>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Context Engineering */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 hover:border-yellow-400/30 transition-all duration-300">
+              <div className="mb-6">
+                <div className="inline-block p-3 rounded-lg bg-yellow-400/10 mb-4">
+                  <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
                 </div>
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-semibold text-gray-700">System</div>
-                      <div className="text-xs text-gray-500">Org-wide</div>
-                    </div>
-                    <div className="mt-2 rounded bg-gray-100 px-3 py-2 font-mono text-xs text-gray-700">agents.md</div>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-semibold text-gray-700">Service</div>
-                      <div className="text-xs text-gray-500">API layer</div>
-                    </div>
-                    <div className="mt-2 rounded bg-blue-100 px-3 py-2 font-mono text-xs text-blue-900">agents.md</div>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-indigo-50 to-white p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-semibold text-gray-700">Feature</div>
-                      <div className="text-xs text-gray-500">Module scope</div>
-                    </div>
-                    <div className="mt-2 rounded bg-indigo-100 px-3 py-2 font-mono text-xs text-indigo-900">agents.md</div>
-                  </div>
-                  <div className="rounded-lg border-2 border-brand-200 bg-gradient-to-br from-brand-50 to-white p-4">
-                    <div className="text-sm font-semibold text-brand-700">Verification Layer</div>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-brand-700/80">
-                      <span className="rounded bg-brand-100 px-2 py-1">routes</span>
-                      <span className="rounded bg-brand-100 px-2 py-1">queues</span>
-                      <span className="rounded bg-brand-100 px-2 py-1">envs</span>
-                      <span className="rounded bg-brand-100 px-2 py-1">logs</span>
-                    </div>
-                  </div>
-                </div>
+                <h3 className="text-2xl font-semibold text-white mb-3">Context</h3>
+                <p className="text-gray-400 leading-relaxed">
+                  We turn your legacy codebase into agent-ready context. Layer guides into your repo that surface golden paths, invariants, and signals—so agents stop hallucinating and start shipping.
+                </p>
               </div>
-              <div className="pointer-events-none absolute -right-8 -bottom-8 h-32 w-32 rounded-full bg-brand-500/20 blur-3xl" />
+              <a href="#" className="text-sm text-yellow-400 hover:text-yellow-300 inline-flex items-center gap-2 group">
+                Learn more
+                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </a>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* How it works */}
-      <section id="how" className="py-20 md:py-28 bg-white">
-        <div className="mx-auto max-w-7xl container-px">
-          <div className="max-w-3xl">
-            <div className="text-xs font-semibold uppercase tracking-widest text-brand-600 mb-3">How it works</div>
-            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-gray-900">
-              Map → Guide → Verify → Train
-            </h2>
-            <p className="mt-3 text-lg text-gray-600">
-              We layer short, high‑signal guides into your repo, wire verification, and enable your teams.
-            </p>
-          </div>
-          <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
-            <div className="relative">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-600 font-semibold">1</div>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900">Map</h3>
-              <p className="mt-2 text-sm text-gray-600">
-                We scan your repo(s), build a guide tree, and baseline your <em>Agent Effectiveness Score</em> on real tasks.
-              </p>
-            </div>
-            <div className="relative">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-600 font-semibold">2</div>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900">Guide</h3>
-              <p className="mt-2 text-sm text-gray-600">
-                We generate and refine <strong>agents.md</strong> at the right scopes—feature, service, system—focused on golden paths and signals.
-              </p>
-            </div>
-            <div className="relative">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-600 font-semibold">3</div>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900">Verify</h3>
-              <p className="mt-2 text-sm text-gray-600">
-                We wire doc‑tests (routes, queues, envs, logs) and PR nudges so guidance stays fresh.
-              </p>
-            </div>
-            <div className="relative">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-600 font-semibold">4</div>
-              <h3 className="mt-4 text-lg font-semibold text-gray-900">Train</h3>
-              <p className="mt-2 text-sm text-gray-600">
-                We upskill your champions and add IDE/CI commands so everyone uses the context layer.
-              </p>
-            </div>
-          </div>
-          <div className="mt-8 text-center text-sm text-gray-500">
-            Typical pilot: 4–6 weeks from kickoff
-          </div>
-        </div>
-      </section>
-
-      {/* Outcomes */}
-      <section id="outcomes" className="py-20 md:py-28 bg-gradient-to-b from-white via-brand-50/30 to-white">
-        <div className="mx-auto max-w-7xl container-px">
-          <div className="max-w-3xl">
-            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-gray-900">
-              Enterprise results you can measure
-            </h2>
-            <p className="mt-3 text-lg text-gray-600">
-              We don't sell slides—we move the numbers that matter.
-            </p>
-          </div>
-          <div className="mt-12 grid gap-8 sm:grid-cols-3">
-            <div>
-              <div className="text-4xl md:text-5xl font-semibold text-gray-900">+40–70</div>
-              <div className="mt-2 text-base font-medium text-gray-900">AES improvement</div>
-              <div className="mt-1 text-sm text-gray-600">Agent Effectiveness Score on real workflows.</div>
-              <div className="mt-2 text-xs text-gray-500">AES = % of tasks agents complete without human fixes</div>
-            </div>
-            <div>
-              <div className="text-4xl md:text-5xl font-semibold text-gray-900">–30%</div>
-              <div className="mt-2 text-base font-medium text-gray-900">Lead time</div>
-              <div className="mt-1 text-sm text-gray-600">Faster time‑to‑merge by making agent PRs safe and reviewable.</div>
-            </div>
-            <div>
-              <div className="text-4xl md:text-5xl font-semibold text-gray-900">–50%</div>
-              <div className="mt-2 text-base font-medium text-gray-900">Reverts</div>
-              <div className="mt-1 text-sm text-gray-600">Fewer rollbacks through clear invariants and doc‑tests.</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Mid-page CTA */}
-      <section className="py-16 md:py-20">
-        <div className="mx-auto max-w-7xl container-px">
-          <div className="rounded-2xl bg-gradient-to-br from-gray-50 to-brand-50/50 border border-gray-200 px-8 py-12 md:px-12 text-center">
-            <h3 className="text-2xl md:text-3xl font-semibold text-gray-900">
-              Ready to baseline your Agent Effectiveness Score?
-            </h3>
-            <p className="mt-3 text-lg text-gray-600 max-w-2xl mx-auto">
-              Two‑week assessment. Clear plan to pilot.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <PrimaryButton href="#contact" className="text-base">
-                Request the Assessment
-              </PrimaryButton>
-              <a href="#contact" className="inline-flex items-center justify-center rounded-md border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-white transition-colors">
-                Book a 20‑min fit call
+            {/* Transformation */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 hover:border-yellow-400/30 transition-all duration-300">
+              <div className="mb-6">
+                <div className="inline-block p-3 rounded-lg bg-yellow-400/10 mb-4">
+                  <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-semibold text-white mb-3">Transformation</h3>
+                <p className="text-gray-400 leading-relaxed">
+                  No 6-month strategy decks. We baseline your Agent Effectiveness Score, run pilots on real services, and deliver measurable ROI in weeks—not quarters.
+                </p>
+              </div>
+              <a href="#" className="text-sm text-yellow-400 hover:text-yellow-300 inline-flex items-center gap-2 group">
+                Learn more
+                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
               </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* What we install */}
-      <section id="install" className="py-20 md:py-28 bg-white">
-        <div className="mx-auto max-w-7xl container-px">
-          <div className="max-w-3xl">
-            <div className="text-xs font-semibold uppercase tracking-widest text-brand-600 mb-3">What we install</div>
-            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-gray-900">
-              Intent: the context layer your agents were missing
-            </h2>
-            <p className="mt-3 text-lg text-gray-600">
-              A light footprint that sits alongside your code and tools.
+      {/* Stark call-out - The Choice */}
+      <section className="relative min-h-screen flex items-center justify-center bg-black">
+        {/* Corner brackets - smaller like Tenex */}
+        <div className="absolute top-32 left-32 w-12 h-12 border-l border-t border-white/10"></div>
+        <div className="absolute top-32 right-32 w-12 h-12 border-r border-t border-white/10"></div>
+        <div className="absolute bottom-32 left-32 w-12 h-12 border-l border-b border-white/10"></div>
+        <div className="absolute bottom-32 right-32 w-12 h-12 border-r border-b border-white/10"></div>
+        
+        <div className="container-px max-w-5xl text-left px-8 md:px-16">
+          <h2 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.1] mb-16" style={{ color: '#FFFFFF' }}>
+            <span style={{ color: '#FFFFFF' }}>You have a choice.</span>
+            <br />
+            <span style={{ color: '#FFFFFF' }}>Disrupt yourself.</span>
+            <br />
+            <span style={{ color: '#FFFFFF' }}>Or be disrupted by <span className="text-yellow-400">others</span>.</span>
+          </h2>
+          
+          <div className="space-y-8 text-xl md:text-2xl leading-relaxed max-w-4xl" style={{ lineHeight: '1.6' }}>
+            <p style={{ color: '#CCCCCC' }}>
+              Because as the cost of intelligence approaches zero, businesses will need to transition from AI-absent to AI-native if they want to stay relevant and succeed.
+            </p>
+            
+            <p style={{ color: '#CCCCCC' }}>
+              You could drive that transformation from within. Our bet is, you won't. Not because you don't want to. Not because you don't believe it's necessary. But because you're focused on <span style={{ color: '#FFFFFF', fontWeight: 600 }}>business success, today</span>.
+            </p>
+            
+            <p style={{ color: '#888888' }}>
+              We don't care about today. We care about the next decade. And helping you win it.
             </p>
           </div>
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
-            <div>
-              <div className="text-base font-semibold text-gray-900">agents.md hierarchy</div>
-              <p className="mt-2 text-sm text-gray-600">
-                Short, high‑signal guides where work happens.
-              </p>
-            </div>
-            <div>
-              <div className="text-base font-semibold text-gray-900">Verification</div>
-              <p className="mt-2 text-sm text-gray-600">
-                Drift checks and signals‑as‑tests wired into CI.
-              </p>
-            </div>
-            <div>
-              <div className="text-base font-semibold text-gray-900">Integrations</div>
-              <p className="mt-2 text-sm text-gray-600">
-                Cursor/JetBrains commands; GitHub/GitLab CI.
-              </p>
-            </div>
+          
+          <div className="mt-16">
+            <a 
+              href="#contact" 
+              className="inline-flex items-center gap-2 bg-white text-black px-8 py-4 font-semibold hover:bg-yellow-400 transition-all duration-200 group text-lg"
+            >
+              Get started
+              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
           </div>
         </div>
       </section>
 
-      {/* Security */}
-      <section id="security" className="py-20 md:py-28 bg-gradient-to-b from-white to-gray-50">
-        <div className="mx-auto max-w-7xl container-px">
-          <div className="max-w-3xl">
-            <div className="text-xs font-semibold uppercase tracking-widest text-brand-600 mb-3">Security</div>
-            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-gray-900">
-              Enterprise‑ready: VPC or on‑prem, data boundaries respected
-            </h2>
-            <p className="mt-3 text-lg text-gray-600">
-              Run where you need; keep intent and code inside your boundary.
-            </p>
-          </div>
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
-            <div>
-              <div className="text-base font-semibold text-gray-900">Private by default</div>
-              <p className="mt-2 text-sm text-gray-600">
-                All processing runs inside your boundary; redact secrets; opt‑in for any external calls.
-              </p>
+      {/* AI isn't scary visual + social proof */}
+      <section className="relative min-h-screen flex items-center justify-center bg-black">
+        <div className="container-px max-w-7xl w-full">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left: Visual placeholder */}
+            <div className="relative">
+              <div className="aspect-square rounded-2xl bg-gradient-to-br from-yellow-400/10 to-transparent border border-white/10 flex items-center justify-center">
+                {/* Placeholder - replace with actual image/gif */}
+                <div className="text-center">
+                  <div className="text-8xl mb-4">🧠</div>
+                  <p className="text-gray-500 text-sm">Visual goes here</p>
+                </div>
+              </div>
             </div>
+            
+            {/* Right: Statement */}
             <div>
-              <div className="text-base font-semibold text-gray-900">Role‑based access</div>
-              <p className="mt-2 text-sm text-gray-600">
-                Restrict who can run modernization, verify changes, and approve rollouts.
-              </p>
-            </div>
-            <div>
-              <div className="text-base font-semibold text-gray-900">Audit trails</div>
-              <p className="mt-2 text-sm text-gray-600">
-                Every run and doc update is logged for review and compliance.
-              </p>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-12">
+                AI isn't scary. <span className="text-yellow-400">Ignoring it is.</span>
+              </h2>
+              
+              {/* Social proof */}
+              <div className="mt-12">
+                <p className="text-sm font-semibold uppercase tracking-widest text-gray-500 mb-6">Trusted by the best:</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 items-center">
+                  {/* Logo placeholders */}
+                  <div className="h-12 bg-white/5 rounded-lg border border-white/10 flex items-center justify-center">
+                    <span className="text-white/30 text-xs font-semibold">LOGO</span>
+                  </div>
+                  <div className="h-12 bg-white/5 rounded-lg border border-white/10 flex items-center justify-center">
+                    <span className="text-white/30 text-xs font-semibold">LOGO</span>
+                  </div>
+                  <div className="h-12 bg-white/5 rounded-lg border border-white/10 flex items-center justify-center">
+                    <span className="text-white/30 text-xs font-semibold">LOGO</span>
+                  </div>
+                  <div className="h-12 bg-white/5 rounded-lg border border-white/10 flex items-center justify-center">
+                    <span className="text-white/30 text-xs font-semibold">LOGO</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+        
+        {/* Corner brackets */}
+        <div className="absolute top-8 left-8 w-12 h-12 border-l-2 border-t-2 border-white/10"></div>
+        <div className="absolute top-8 right-8 w-12 h-12 border-r-2 border-t-2 border-white/10"></div>
+        <div className="absolute bottom-8 left-8 w-12 h-12 border-l-2 border-b-2 border-white/10"></div>
+        <div className="absolute bottom-8 right-8 w-12 h-12 border-r-2 border-b-2 border-white/10"></div>
       </section>
 
-      {/* Contact */}
-      <section id="contact" className="py-20 md:py-28 bg-gradient-to-b from-gray-50 via-white to-white">
-        <div className="mx-auto max-w-7xl container-px">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="text-xs font-semibold uppercase tracking-widest text-brand-600 mb-3">Get started</div>
-            <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-gray-900">
-              Request the Agent Effectiveness Assessment
-            </h2>
-            <p className="mt-3 text-lg text-gray-600">
-              We'll baseline your codebase and show where to start. Typical engagements begin within 1–2 weeks.
+      {/* Contact - Get Started */}
+      <section id="contact" className="relative bg-black py-32">
+        <div className="container-px max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-16">
+            {/* Left side */}
+            <div>
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                Ready to Intent your business?
+              </h2>
+              <p className="text-xl text-gray-400 mb-8">
+                From context engineering to end-to-end AI transformation, we'll help you <span className="text-yellow-400">win the next decade</span>.
+              </p>
+              
+              <div className="space-y-4 text-gray-400">
+                <div className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p>Baseline Agent Effectiveness on real workflows</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p>Install context layers that make agents reliable</p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <svg className="w-6 h-6 text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <p>Train your teams to maintain AI-ready infrastructure</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Right side - Form */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
+              <ContactForm />
+            </div>
+          </div>
+          
+          <div className="mt-12 text-center">
+            <p className="text-sm text-gray-500">
+              Or email us at{' '}
+              <a href="mailto:hello@intent-systems.com" className="text-yellow-400 hover:text-yellow-300 transition-colors">
+                hello@intent-systems.com
+              </a>
             </p>
           </div>
-          <div className="mx-auto mt-12 max-w-3xl rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
-            <ContactForm />
-          </div>
-          <p className="mt-6 text-center text-sm text-gray-600">
-            Or email us at <a className="text-brand-700 hover:underline font-medium" href="mailto:hello@intent-systems.com">hello@intent-systems.com</a>
-          </p>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-gray-50">
-        <div className="mx-auto max-w-7xl container-px py-12">
+      <footer className="bg-black border-t border-white/10">
+        <div className="container-px py-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex flex-col items-center md:items-start gap-4">
-              <Logo />
-              <p className="text-sm text-gray-600">
-                Make AI effective on your legacy code.
-              </p>
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 bg-gradient-to-br from-yellow-400 to-yellow-600" />
+              <span className="font-semibold tracking-tight text-lg" style={{ color: '#FFFFFF' }}>
+                Intent <span className="text-yellow-400">Systems</span>
+              </span>
             </div>
-            <div className="flex flex-col items-center md:items-end gap-3">
-              <a href="mailto:hello@intent-systems.com" className="text-sm text-gray-600 hover:text-gray-900">
-                hello@intent-systems.com
-              </a>
-              <p className="text-sm text-gray-500">
-                © {new Date().getFullYear()} Intent Systems. All rights reserved.
-              </p>
-            </div>
+            
+            <p className="text-sm text-gray-500">
+              © {new Date().getFullYear()} Intent Systems. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
     </main>
   );
 }
-

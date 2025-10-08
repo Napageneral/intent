@@ -41,44 +41,44 @@ export default function ContactForm() {
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-800">Name</label>
+          <label className="block text-sm font-medium text-gray-300">Name*</label>
           <input name="name" required placeholder="Jane Doe"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-500 focus:ring-brand-500" />
+            className="mt-1 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-white placeholder:text-gray-500 focus:border-yellow-400 focus:ring-yellow-400" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-800">Work Email</label>
+          <label className="block text-sm font-medium text-gray-300">Work Email*</label>
           <input type="email" name="email" required placeholder="jane@company.com"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-500 focus:ring-brand-500" />
+            className="mt-1 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-white placeholder:text-gray-500 focus:border-yellow-400 focus:ring-yellow-400" />
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-800">Company</label>
+          <label className="block text-sm font-medium text-gray-300">Company*</label>
           <input name="company" required placeholder="Acme Corp"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-500 focus:ring-brand-500" />
+            className="mt-1 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-white placeholder:text-gray-500 focus:border-yellow-400 focus:ring-yellow-400" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-800">Role</label>
+          <label className="block text-sm font-medium text-gray-300">Role*</label>
           <input name="role" required placeholder="VP Engineering"
-            className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-500 focus:ring-brand-500" />
+            className="mt-1 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-white placeholder:text-gray-500 focus:border-yellow-400 focus:ring-yellow-400" />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-800">Interest</label>
+        <label className="block text-sm font-medium text-gray-300">Which services are you interested in?</label>
         <select name="interest" defaultValue="assessment"
-          className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:border-brand-500 focus:ring-brand-500">
-          {interests.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
+          className="mt-1 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-white focus:border-yellow-400 focus:ring-yellow-400">
+          {interests.map(i => <option key={i.value} value={i.value} className="bg-black">{i.label}</option>)}
         </select>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-800">
-          What are you hoping to accomplish?
+        <label className="block text-sm font-medium text-gray-300">
+          Describe your specific needs you'd like our solutions to support*
         </label>
-        <textarea name="message" required rows={5} placeholder="Give us context on your legacy stack, where agents stall today, and the KPIs you care about."
-          className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:border-brand-500 focus:ring-brand-500" />
+        <textarea name="message" required rows={5} placeholder="Tell us about your legacy stack, where agents stall today, and the KPIs you care about..."
+          className="mt-1 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-white placeholder:text-gray-500 focus:border-yellow-400 focus:ring-yellow-400" />
       </div>
 
       {/* Honeypot */}
@@ -90,16 +90,16 @@ export default function ContactForm() {
       <button
         type="submit"
         disabled={status === 'submitting'}
-        className="inline-flex w-full items-center justify-center rounded-md bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 focus-visible:outline focus-visible:ring-2 focus-visible:ring-brand-500 md:w-auto"
+        className="inline-flex w-full items-center justify-center bg-yellow-400 px-6 py-3 text-sm font-semibold text-black hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {status === 'submitting' ? 'Sending…' : 'Request the Assessment'}
+        {status === 'submitting' ? 'Sending…' : 'Submit'}
       </button>
 
       {status === 'success' && (
-        <p className="text-sm text-green-700">Thanks—your inquiry is in. We'll reply shortly.</p>
+        <p className="text-sm text-green-400">Thanks—your inquiry is in. We'll reply shortly.</p>
       )}
       {status === 'error' && (
-        <p className="text-sm text-red-700">Couldn't send: {error}</p>
+        <p className="text-sm text-red-400">Couldn't send: {error}</p>
       )}
     </form>
   );

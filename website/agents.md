@@ -11,8 +11,8 @@ One-page marketing site for Intent Systems. Modern Next.js 14 (App Router) with 
 ```
 website/
 ├── app/                    # Next.js App Router
-│   ├── layout.tsx         # Root layout, SEO metadata
-│   ├── page.tsx           # Main landing page (hero → CTA)
+│   ├── layout.tsx         # Root layout, SEO metadata, Analytics
+│   ├── page.tsx           # Tenex-style landing page (stark, emotional)
 │   ├── globals.css        # Tailwind + custom styles
 │   └── api/contact/       # Form submission endpoint
 ├── components/            # Reusable UI components
@@ -20,6 +20,26 @@ website/
 ├── public/               # Static assets (favicon, OG image)
 └── .intent/              # Intent system config
 ```
+
+## Design Philosophy (Tenex-Inspired)
+
+**Stark, Emotional, Minimal** - The landing page is designed to make visitors *feel* something, not explain everything.
+
+**Key Principles:**
+- All-black backgrounds with yellow accent (#FFD700)
+- Massive, bold typography (up to text-9xl)
+- Monospace fonts for hero text (technical/pixelated feel)
+- Minimal chrome (simple header + hamburger)
+- Corner brackets on major sections
+- Horizontal CTA rows (not centered buttons)
+- Full-screen sections (min-h-screen)
+
+**Page Structure:**
+1. **Hero** - "Win the next decade" with bottom CTA row
+2. **Our Approach** - Context & Transformation cards
+3. **The Choice** - Emotional stark section
+4. **AI isn't scary** - Visual + social proof
+5. **Contact** - Dark form
 
 ## Golden Paths
 
@@ -111,7 +131,19 @@ Subject: `New inquiry (${interest}) — ${company} / ${name}`
 
 ## Testing Checklist
 
+**IMPORTANT:** Always verify the dev server runs successfully (`npm run dev`) before handing back to user. Test that http://localhost:3000 returns 200 and renders correctly.
+
+**Design Verification:**
+- [ ] Hero text fits on one line (responsive sizing)
+- [ ] All CTAs have sharp corners (no `rounded-md`)
+- [ ] Bottom CTA row is horizontal (text | divider | button)
+- [ ] Header has increased padding (ml-4, mr-4, pt-4)
+- [ ] White text uses high contrast (#FFFFFF, #E5E5E5)
+- [ ] No corner brackets on hero section
+
 Before deploying:
+- [ ] Dev server starts without errors (`npm run dev`)
+- [ ] Homepage loads at http://localhost:3000 (200 OK)
 - [ ] Form submits successfully (check email received)
 - [ ] All links work (nav, anchor links)
 - [ ] Mobile responsive (test on small screen)
