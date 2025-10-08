@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --radius: 10px;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  @apply antialiased text-gray-800 bg-white;
+}
+
+/* Subtle grid background */
+.bg-grid {
+  background-image: radial-gradient(rgba(16,24,40,0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.container-px {
+  @apply px-6 md:px-8;
+}
+
