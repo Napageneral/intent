@@ -242,3 +242,4 @@ cat .intent/decisions/00X-*.md
 
 The foundation is solid. The layered workflow now actually runs and updates guides. The ADR and commit message generation are still mechanical but include real data. Phase 2 & 3 will make those AI-powered.
 
+

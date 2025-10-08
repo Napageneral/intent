@@ -98,10 +98,12 @@ intent init
 Creates:
 - `.intent/config.json` - Project-specific settings (model, edit policy, patterns)
 - `.intent/decisions/` - ADR directory with guide template
-- `.intent/docs/` - Documentation files (deep dives, guides)
-- `.intent/.proposed-intent/` - Working files (gitignored)
+- `.intent/state/` - Layer summaries for parent context
+- `.intent/runs/` - Run manifests (future)
+- `.intent/questions/` - Onboarding question packs (future)
+- `.intent/drafts/` - Draft guides (future)
 - `.intent/intent.db` - SQLite database (created on first run)
-- Updates `.gitignore` to exclude `.intent/.proposed-intent/`
+- Updates `.gitignore` to exclude `.proposed-intent/`
 
 ### 3. Usage Loop
 
@@ -173,8 +175,7 @@ Trade-offs:
 - Engineering guides: `agents.md` (or `CLAUDE.md` for legacy)
 - ADRs: `.intent/decisions/NNN-title.md`
 - Config: `.intent/config.json`
-- Working files: `.intent/.proposed-intent/` (gitignored)
-- Documentation: `.intent/docs/` (deep dives, references)
+- Working files: `.proposed-intent/` (gitignored)
 
 This consistency makes tooling simpler and cross-project navigation easier.
 
@@ -232,9 +233,9 @@ This prevents:
 - Exit codes: 0 = success, 1 = error
 
 ### Files
-- `.intent/.proposed-intent/*.prompt.md` - Generated prompts
-- `.intent/.proposed-intent/*.context.json` - Context bundles (for debugging)
-- `.intent/.proposed-intent/*.patch` - User-generated patches
+- `.proposed-intent/*.prompt.md` - Generated prompts
+- `.proposed-intent/*.context.json` - Context bundles (for debugging)
+- `.proposed-intent/*.patch` - User-generated patches
 
 ### Errors
 - Missing git: "git: command not found"
@@ -306,7 +307,7 @@ git add .
 intent update
 ```
 
-Our ADRs are in `.intent/decisions/` and document key choices like:
+Our ADRs are in `decisions/` and document key choices like:
 - Why CLI tool instead of library
 - Why language-agnostic approach
 - Why user-installed not project-specific
