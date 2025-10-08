@@ -1,10 +1,34 @@
 import ContactForm from '@/components/ContactForm';
+import dynamic from 'next/dynamic';
+
+// Dynamic import to avoid SSR issues with Three.js
+const AttractorHero = dynamic(() => import('@/components/AttractorHero'), {
+  ssr: false,
+  loading: () => (
+    <section className="relative min-h-screen flex items-center justify-center bg-black">
+      <div className="relative z-10 container-px max-w-7xl mx-auto -mt-32">
+        <h1
+          className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[0.85] whitespace-nowrap text-center"
+          style={{
+            fontFamily: 'monospace',
+            letterSpacing: '-0.02em',
+            textShadow: '0 0 40px rgba(255,215,0,0.3)',
+            color: '#FFFFFF',
+            fontWeight: 900
+          }}
+        >
+          Win the <span className="text-yellow-400" style={{ textShadow: '0 0 50px rgba(255,215,0,0.6)' }}>next decade</span>.
+        </h1>
+      </div>
+    </section>
+  )
+});
 
 export default function Page() {
   return (
     <main>
       {/* Header - Minimal Tenex style */}
-      <header className="absolute top-0 left-0 right-0 z-50 bg-transparent">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
         <div className="container-px flex h-24 items-center justify-between pt-4">
           <div className="flex items-center gap-2 ml-4">
             <div className="h-6 w-6 bg-gradient-to-br from-yellow-400 to-yellow-600" />
@@ -22,54 +46,8 @@ export default function Page() {
         </div>
       </header>
 
-      {/* Hero - Stark Tenex style */}
-      <section className="relative min-h-screen flex items-center justify-center bg-black pt-20">
-        {/* Background placeholder - you can add gif/visual here */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black z-0">
-          {/* Placeholder for visual - can be replaced with video/gif */}
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,rgba(255,215,0,0.15),transparent_70%)]"></div>
-        </div>
-        
-        <div className="relative z-10 container-px text-center max-w-7xl -mt-32">
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white leading-[0.85] whitespace-nowrap" style={{ fontFamily: 'monospace', letterSpacing: '-0.02em', textShadow: '0 0 40px rgba(255,215,0,0.3)', color: '#FFFFFF', fontWeight: 900 }}>
-            Win the <span className="text-yellow-400" style={{ textShadow: '0 0 50px rgba(255,215,0,0.6)' }}>next decade.</span>
-          </h1>
-        </div>
-        
-        {/* Bottom CTA row - Tenex style */}
-        <div className="absolute bottom-16 left-0 right-0 z-10">
-          <div className="container-px max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-8">
-              {/* Left: Tagline */}
-              <div className="text-left flex-1 max-w-xl">
-                <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mb-0.5" style={{ color: '#FFFFFF' }}>
-                  Your <span className="text-yellow-400">AI transformation</span> partner.
-                </h2>
-                <p className="text-sm md:text-base" style={{ color: '#E5E5E5' }}>
-                  We set & execute your enterprise AI strategy at startup speed.
-                </p>
-              </div>
-              
-              {/* Center: Divider */}
-              <div className="hidden md:block h-px flex-1 bg-white/20" style={{ maxWidth: '400px' }}></div>
-              
-              {/* Right: CTA */}
-              <div className="flex-shrink-0">
-                <a 
-                  href="#approach" 
-                  className="inline-flex items-center gap-2 bg-white text-black px-8 py-3.5 font-semibold hover:bg-yellow-400 transition-all duration-200 group"
-                  style={{ color: '#000000' }}
-                >
-                  Learn more
-                  <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Hero with Attractor Particle System */}
+      <AttractorHero />
 
       {/* Our Approach - Strategy/Context/Enablement */}
       <section id="approach" className="relative bg-black py-32">
