@@ -12,3 +12,4 @@ export const inquirySchema = z.object({
 });
 export type Inquiry = z.infer<typeof inquirySchema>;
 
+

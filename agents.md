@@ -129,7 +129,7 @@ No shared dependencies at root (keeps deploys clean).
 **Status:** Active development.
 
 ### Current Focus (Oct 2025)
-- Website hero visual: GPU Thomas attractor (Three.js + R3F) with scroll‑driven coherence
-- Challenges: matching reference’s ultra‑fine hairline trails and large on‑screen scale without visual “solid” ends
-- Next step: implement accumulation/trail rendering pass and screen‑space scaling without changing camera
+- Website background visual: fixed full‑viewport GPU Thomas attractor (Three.js + R3F) with scroll‑driven coherence and accumulation trails (ping‑pong FBO). DPR‑aware resizing and camera‑pinned present plane to avoid borders. Parallax + orbit controls.
+- Challenges: ensure drag‑to‑orbit works when background sits behind interactive content; remove rare edge lines on certain DPRs; tune for persistent constellation look without coalescing too quickly.
+- Next steps: pointer forwarding layer for OrbitControls; optional direct-to-framebuffer present pass; tweak decay/dropout/brightness; expose tunables for easy art direction.
 

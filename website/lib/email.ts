@@ -26,3 +26,4 @@ export async function sendInquiryEmail(payload: {
   return response;
 }
 
+

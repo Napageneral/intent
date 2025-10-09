@@ -1,27 +1,35 @@
 'use client';
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useFBO } from '@react-three/drei';
 import * as THREE from 'three';
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { useScroll, useSpring } from 'framer-motion';
 
-const SIZE = 250; // 250×250 = 62,500 particles (matches reference)
+/** ====== Tunables ====== */
+const SIZE = 250;                 // 250×250 = 62,500 particles
 const DT = 0.015;
-const START_A = 0.19; // Thomas attractor parameter
-const END_A = 0.21;   // More stable when scrolled
+const START_A = 0.19;             // Thomas a (chaotic-ish)
+const END_A   = 0.21;             // More coherent
+const START_DECAY = 0.960;        // short trails during chaos
+const END_DECAY   = 0.985;        // long trails once ordered
+const POINT_SIZE_PX = 1.0;        // tiny for hairlines
+const SCALE_ON_SCREEN = 10.0;     // make shape big without thickening
+const BRIGHTNESS = 1.35;          // overall gain when compositing
+/** ======================== */
 
-type ColorMode = 'solid' | 'radius' | 'angular';
+type ColorMode = 'radius' | 'solid';
 
-function makeInitialPositions() {
+/** Seed positions (cube) */
+function makeInitialPositionsTexture() {
   const data = new Float32Array(SIZE * SIZE * 4);
-  const scale = 10.0; // 10x larger attractor for ultra-fine particle appearance
+  const initSpread = 2.0 * SCALE_ON_SCREEN; // spawn wider if we scale later
   let i = 0;
   for (let y = 0; y < SIZE; y++) {
     for (let x = 0; x < SIZE; x++, i += 4) {
-      // Random cube initialization, scaled up
-      data[i + 0] = (Math.random() - 0.5) * 2 * scale;
-      data[i + 1] = (Math.random() - 0.5) * 2 * scale;
-      data[i + 2] = (Math.random() - 0.5) * 2 * scale;
+      data[i + 0] = (Math.random() - 0.5) * initSpread;
+      data[i + 1] = (Math.random() - 0.5) * initSpread;
+      data[i + 2] = (Math.random() - 0.5) * initSpread;
       data[i + 3] = 1.0;
     }
   }
@@ -30,297 +38,360 @@ function makeInitialPositions() {
   return tex;
 }
 
-// Compute shader: Thomas attractor (exact reference equations)
-const computeFrag = `
-precision highp float;
-uniform sampler2D uPositions;
-uniform float uA;
-varying vec2 vUv;
-
-void main() {
-  vec3 pos = texture2D(uPositions, vUv).xyz;
-  float dt = 0.015;
-  float a = uA;
-  float x = pos.x, y = pos.y, z = pos.z;
-  
-  // Thomas attractor equations (exact from reference)
-  float dx = (-a*x + sin(y)) * dt;
-  float dy = (-a*y + sin(z)) * dt;
-  float dz = (-a*z + sin(x)) * dt;
-  
-  pos += vec3(dx, dy, dz);
-  
-  // Soft boundary (scaled for 10x larger attractor)
-  float r = length(pos);
-  if (r > 120.0) pos *= 0.95;
-  
-  gl_FragColor = vec4(pos, 1.0);
-}
+/** ---------- Compute shaders (Thomas) ---------- */
+const computeVert = /* glsl */`
+  varying vec2 vUv;
+  void main() {
+    vUv = position.xy * 0.5 + 0.5;
+    gl_Position = vec4(position.xy, 0.0, 1.0);
+  }
 `;
 
-const computeVert = `
-varying vec2 vUv;
-void main() {
-  vUv = position.xy * 0.5 + 0.5;
-  gl_Position = vec4(position.xy, 0.0, 1.0);
-}
+const computeFrag = /* glsl */`
+  precision highp float;
+  uniform sampler2D uPositions;
+  uniform float uA;
+  varying vec2 vUv;
+
+  void main() {
+    vec3 pos = texture2D(uPositions, vUv).xyz;
+    float dt = ${DT.toFixed(6)};
+    float a = uA;
+
+    float dx = (-a*pos.x + sin(pos.y)) * dt;
+    float dy = (-a*pos.y + sin(pos.z)) * dt;
+    float dz = (-a*pos.z + sin(pos.x)) * dt;
+
+    pos += vec3(dx, dy, dz);
+
+    // gentle soft bounds
+    float r = length(pos);
+    if (r > 120.0) pos *= 0.96;
+
+    gl_FragColor = vec4(pos, 1.0);
+  }
 `;
 
-// Render shader with color modes
-const renderVert = `
-uniform sampler2D uPositions;
-uniform float uPointSize;
-attribute vec2 aRef;
-varying vec3 vPos;
-varying vec3 vColor;
-uniform int uColorMode; // 0=solid, 1=radius, 2=angular
+/** ---------- Points render (to pointsRT, then composited) ---------- */
+const pointsVert = /* glsl */`
+  uniform sampler2D uPositions;
+  uniform float uPointSize;
+  uniform float uScale;
+  attribute vec2 aRef;
+  varying vec3 vColor;
 
-// Solid: gold/yellow
-vec3 solidColor() {
-  return vec3(1.0, 0.843, 0.0);
-}
-
-// Radius: color based on distance from origin
-vec3 radiusColor(vec3 pos) {
-  float r = length(pos);
-  float t = clamp(r / 100.0, 0.0, 1.0); // Adjusted for 10x larger attractor
-  // Blue to cyan to white gradient
-  vec3 near = vec3(0.2, 0.4, 1.0);   // blue
-  vec3 mid = vec3(0.3, 0.8, 1.0);    // cyan
-  vec3 far = vec3(0.9, 0.95, 1.0);   // near white
-  
-  if (t < 0.5) {
-    return mix(near, mid, t * 2.0);
-  } else {
-    return mix(mid, far, (t - 0.5) * 2.0);
+  // Blue → Cyan → White by radius
+  vec3 radiusColor(vec3 p) {
+    float r = clamp(length(p) / 100.0, 0.0, 1.0);
+    vec3 near = vec3(0.20, 0.40, 1.00);
+    vec3 mid  = vec3(0.30, 0.80, 1.00);
+    vec3 far  = vec3(0.95, 0.98, 1.00);
+    return r < 0.5 ? mix(near, mid, r*2.0) : mix(mid, far, (r-0.5)*2.0);
   }
-}
 
-// Angular: color based on angle
-vec3 angularColor(vec3 pos) {
-  float angle = atan(pos.y, pos.x) / 3.14159265359; // -1 to 1
-  float t = (angle + 1.0) * 0.5; // 0 to 1
-  
-  // HSV-like rainbow
-  vec3 c1 = vec3(1.0, 0.2, 0.2); // red
-  vec3 c2 = vec3(1.0, 1.0, 0.2); // yellow
-  vec3 c3 = vec3(0.2, 1.0, 0.2); // green
-  vec3 c4 = vec3(0.2, 0.2, 1.0); // blue
-  
-  if (t < 0.33) {
-    return mix(c1, c2, t * 3.0);
-  } else if (t < 0.66) {
-    return mix(c2, c3, (t - 0.33) * 3.0);
-  } else {
-    return mix(c3, c4, (t - 0.66) * 3.0);
-  }
-}
-
-void main() {
-  vec3 pos = texture2D(uPositions, aRef).xyz;
-  vPos = pos;
-  
-  // Select color mode
-  if (uColorMode == 1) {
+  void main() {
+    vec3 pos = texture2D(uPositions, aRef).xyz * uScale;
     vColor = radiusColor(pos);
-  } else if (uColorMode == 2) {
-    vColor = angularColor(pos);
-  } else {
-    vColor = solidColor();
+    // No distance attenuation → truly hairline at any scale
+    gl_PointSize = uPointSize;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
-  
-  vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-  gl_Position = projectionMatrix * mvPosition;
-  
-  // Particle size with distance attenuation
-  gl_PointSize = uPointSize * (200.0 / -mvPosition.z);
-}
 `;
 
-const renderFrag = `
-varying vec3 vColor;
-void main() {
-  vec2 pc = gl_PointCoord * 2.0 - 1.0;
-  float d = dot(pc, pc);
-  if (d > 1.0) discard;
-  
-  float alpha = smoothstep(1.0, 0.2, d);
-  gl_FragColor = vec4(vColor, alpha * 0.7);
-}
+const pointsFrag = /* glsl */`
+  precision highp float;
+  varying vec3 vColor;
+  void main() {
+    // circular sprite with Gaussian falloff
+    vec2 pc = gl_PointCoord * 2.0 - 1.0;
+    float d2 = dot(pc, pc);                 // r^2
+    if (d2 > 1.0) discard;
+    float gaussian = exp(-5.0 * d2);        // sharper core, soft feather
+    gl_FragColor = vec4(vColor, gaussian * 0.08); // very low alpha, additive
+  }
 `;
 
-function AttractorPoints({ coherence, colorMode }: { coherence: number; colorMode: ColorMode }) {
-  const { gl } = useThree();
-  const initialTex = useMemo(makeInitialPositions, []);
-  
-  // Create FBOs
-  const pingPong = useMemo(() => {
-    const rtOptions = {
-      minFilter: THREE.NearestFilter,
-      magFilter: THREE.NearestFilter,
-      format: THREE.RGBAFormat,
-      type: THREE.FloatType,
-      stencilBuffer: false,
-      depthBuffer: false
-    };
-    return {
-      ping: new THREE.WebGLRenderTarget(SIZE, SIZE, rtOptions),
-      pong: new THREE.WebGLRenderTarget(SIZE, SIZE, rtOptions),
-      flip: false
-    };
-  }, []);
-  
-  // Compute scene
+/** ---------- Composite shaders (prev trails * decay + current points) ---------- */
+const compositeVert = /* glsl */`
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = vec4(position.xy, 0.0, 1.0);
+  }
+`;
+
+const compositeFrag = /* glsl */`
+  precision highp float;
+  varying vec2 vUv;
+  uniform sampler2D uPrev;     // previous trails
+  uniform sampler2D uCurrent;  // points of this frame
+  uniform float uDecay;
+  uniform float uGain;
+
+  void main() {
+    vec3 prev = texture2D(uPrev, vUv).rgb;
+    vec3 curr = texture2D(uCurrent, vUv).rgb;
+    // simple persistence + additive
+    vec3 accum = uDecay * prev + uGain * curr;
+    // mild soft clip to avoid blowout
+    accum = min(accum, vec3(1.0));
+    gl_FragColor = vec4(accum, 1.0);
+  }
+`;
+
+/** ---------- Present (just blit trails texture) ---------- */
+const presentFrag = /* glsl */`
+  precision highp float;
+  varying vec2 vUv;
+  uniform sampler2D uTex;
+  void main() {
+    vec3 c = texture2D(uTex, vUv).rgb;
+    gl_FragColor = vec4(c, 1.0);
+  }
+`;
+
+function AttractorLayer({ coherence }: { coherence: number }) {
+  const { gl, size, camera, viewport } = useThree();
+
+  /** 1) Compute ping‑pong for positions */
+  const initialTex = useMemo(makeInitialPositionsTexture, []);
+  const computeCam = useMemo(() => new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), []);
   const computeScene = useMemo(() => {
-    const scene = new THREE.Scene();
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        uPositions: { value: initialTex },
-        uA: { value: START_A }
-      },
-      vertexShader: computeVert,
-      fragmentShader: computeFrag
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uPositions: { value: initialTex }, uA: { value: START_A } },
+      vertexShader: computeVert, fragmentShader: computeFrag, depthTest: false, depthWrite: false
     });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
-    scene.add(mesh);
-    return { scene, material };
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat);
+    const scene = new THREE.Scene(); scene.add(mesh);
+    return { scene, mat };
   }, [initialTex]);
-  
-  const orthoCamera = useMemo(() => new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), []);
-  
-  // Points geometry
-  const pointsGeometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry();
+
+  const posPing = useFBO(SIZE, SIZE, { type: THREE.FloatType, format: THREE.RGBAFormat, depthBuffer: false });
+  const posPong = useFBO(SIZE, SIZE, { type: THREE.FloatType, format: THREE.RGBAFormat, depthBuffer: false });
+  const posFlip = useRef(false);
+  const posInitialized = useRef(false);
+
+  /** 2) Points scene (offscreen) */
+  const pointsScene = useMemo(() => new THREE.Scene(), []);
+  const pointsRT = useFBO(size.width, size.height, {
+    type: THREE.HalfFloatType, format: THREE.RGBAFormat, depthBuffer: false
+  });
+
+  // geometry: references into positions tex
+  const pointsGeom = useMemo(() => {
+    const g = new THREE.BufferGeometry();
     const refs = new Float32Array(SIZE * SIZE * 2);
-    const positions = new Float32Array(SIZE * SIZE * 3);
-    
     let i = 0;
     for (let y = 0; y < SIZE; y++) {
       for (let x = 0; x < SIZE; x++, i += 2) {
-        refs[i + 0] = (x + 0.5) / SIZE;
+        refs[i] = (x + 0.5) / SIZE;
         refs[i + 1] = (y + 0.5) / SIZE;
       }
     }
-    
-    geo.setAttribute('aRef', new THREE.BufferAttribute(refs, 2));
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    return geo;
+    g.setAttribute('aRef', new THREE.BufferAttribute(refs, 2));
+    // dummy position (required by three)
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(SIZE * SIZE * 3), 3));
+    return g;
   }, []);
-  
-  const pointsMaterial = useMemo(() => {
-    const colorModeInt = colorMode === 'solid' ? 0 : colorMode === 'radius' ? 1 : 2;
-    return new THREE.ShaderMaterial({
-      uniforms: {
-        uPositions: { value: initialTex },
-        uPointSize: { value: 1.5 }, // Slightly larger since camera is farther back
-        uColorMode: { value: colorModeInt }
-      },
-      vertexShader: renderVert,
-      fragmentShader: renderFrag,
-      transparent: true,
-      depthTest: true,
-      depthWrite: false,
-      blending: THREE.NormalBlending
-    });
-  }, [initialTex, colorMode]);
-  
-  const initialized = useRef(false);
-  
-  useFrame(() => {
-    const a = THREE.MathUtils.lerp(START_A, END_A, coherence);
-    computeScene.material.uniforms.uA.value = a;
-    
-    // Initialize on first frame
-    if (!initialized.current) {
-      computeScene.material.uniforms.uPositions.value = initialTex;
-      gl.setRenderTarget(pingPong.ping);
-      gl.render(computeScene.scene, orthoCamera);
-      gl.setRenderTarget(null);
-      initialized.current = true;
-    }
-    
-    // Ping-pong update
-    const current = pingPong.flip ? pingPong.pong : pingPong.ping;
-    const next = pingPong.flip ? pingPong.ping : pingPong.pong;
-    
-    computeScene.material.uniforms.uPositions.value = current.texture;
-    gl.setRenderTarget(next);
-    gl.clear();
-    gl.render(computeScene.scene, orthoCamera);
+
+  const pointsMat = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: {
+      uPositions: { value: initialTex },
+      uPointSize: { value: POINT_SIZE_PX * (typeof (gl as any).getPixelRatio === 'function' ? (gl as any).getPixelRatio() : 1) },
+      uScale: { value: SCALE_ON_SCREEN }
+    },
+    vertexShader: pointsVert,
+    fragmentShader: pointsFrag,
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false
+  }), [initialTex, gl]);
+
+  // add points mesh to its own scene once
+  useEffect(() => {
+    const mesh = new THREE.Points(pointsGeom, pointsMat);
+    pointsScene.add(mesh);
+    return () => {
+      pointsScene.remove(mesh);
+      pointsGeom.dispose();
+      pointsMat.dispose();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** 3) Trails ping‑pong (accumulation) + present quad */
+  const trailsA = useFBO(size.width, size.height, { type: THREE.HalfFloatType, format: THREE.RGBAFormat, depthBuffer: false });
+  const trailsB = useFBO(size.width, size.height, { type: THREE.HalfFloatType, format: THREE.RGBAFormat, depthBuffer: false });
+  const trailsFlip = useRef(false);
+
+  const compositeMat = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: { uPrev: { value: trailsA.texture }, uCurrent: { value: pointsRT.texture }, uDecay: { value: START_DECAY }, uGain: { value: BRIGHTNESS } },
+    vertexShader: compositeVert, fragmentShader: compositeFrag, depthTest: false, depthWrite: false
+  }), [pointsRT, trailsA]);
+
+  const presentMat = useMemo(() => new THREE.ShaderMaterial({
+    uniforms: { uTex: { value: trailsA.texture } },
+    vertexShader: compositeVert, fragmentShader: presentFrag, depthTest: false, depthWrite: false
+  }), [trailsA]);
+
+  // full‑screen plane in the *main* scene so R3F draws it for us
+  const screenPlaneRef = useRef<THREE.Mesh>(null!);
+
+  // ---------- Viewport helpers to fix clipping ----------
+  const setForTarget = (rt: THREE.WebGLRenderTarget, clear = false) => {
+    gl.setRenderTarget(rt);
+    gl.setViewport(0, 0, rt.width, rt.height);
+    gl.setScissor(0, 0, rt.width, rt.height);
+    gl.setScissorTest(true);
+    if (clear) gl.clear(true, true, true);
+  };
+  const resetToCanvas = () => {
+    const dpr = typeof (gl as any).getPixelRatio === 'function' ? (gl as any).getPixelRatio() : (window.devicePixelRatio || 1);
+    const W = Math.floor(size.width * dpr);
+    const H = Math.floor(size.height * dpr);
     gl.setRenderTarget(null);
-    
-    pingPong.flip = !pingPong.flip;
-    
-    // Update points material
-    pointsMaterial.uniforms.uPositions.value = next.texture;
+    gl.setViewport(0, 0, W, H);
+    gl.setScissor(0, 0, W, H);
+    gl.setScissorTest(false);
+  };
+  // ------------------------------------------------------
+
+  useFrame(() => {
+    // map scroll → coherence
+    const a = THREE.MathUtils.lerp(START_A, END_A, coherence);
+    const decay = THREE.MathUtils.lerp(START_DECAY, END_DECAY, coherence);
+    computeScene.mat.uniforms.uA.value = a;
+    compositeMat.uniforms.uDecay.value = decay;
+
+    // initialization: seed one of the position buffers from initialTex
+    if (!posInitialized.current) {
+      computeScene.mat.uniforms.uPositions.value = initialTex;
+      setForTarget(posPing, false);
+      gl.render(computeScene.scene, computeCam);
+      resetToCanvas();
+      posFlip.current = true; // next read from posPing
+      posInitialized.current = true;
+    }
+
+    // 1) advance positions into posNext
+    const posRead = posFlip.current ? posPing : posPong;
+    const posWrite = posFlip.current ? posPong : posPing;
+    computeScene.mat.uniforms.uPositions.value = posRead.texture;
+    setForTarget(posWrite, false);
+    gl.render(computeScene.scene, computeCam);
+    resetToCanvas();
+    posFlip.current = !posFlip.current;
+
+    // 2) render points (sampling latest positions) into pointsRT
+    pointsMat.uniforms.uPositions.value = posWrite.texture;
+    setForTarget(pointsRT, true);
+    gl.render(pointsScene, camera); // reuse main camera (we're screen-space)
+    resetToCanvas();
+
+    // 3) composite: trailsNext = decay * trailsRead + pointsRT
+    const trailsRead = trailsFlip.current ? trailsB : trailsA;
+    const trailsWrite = trailsFlip.current ? trailsA : trailsB;
+    compositeMat.uniforms.uPrev.value = trailsRead.texture;
+    compositeMat.uniforms.uCurrent.value = pointsRT.texture;
+
+    // small full-screen quad for composite
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), compositeMat);
+    const compScene = new THREE.Scene(); compScene.add(quad);
+    const compCam = computeCam; // same ortho cam
+    setForTarget(trailsWrite, false);
+    gl.render(compScene, compCam);
+    resetToCanvas();
+    trailsFlip.current = !trailsFlip.current;
+
+    // 4) update present material to newest trails
+    presentMat.uniforms.uTex.value = trailsWrite.texture;
+
+    // 5) resize FBOs if canvas resized
+    const dpr = typeof (gl as any).getPixelRatio === 'function' ? (gl as any).getPixelRatio() : (window.devicePixelRatio || 1);
+    const pxW = Math.floor(size.width * dpr);
+    const pxH = Math.floor(size.height * dpr);
+    if (trailsWrite.width !== pxW || trailsWrite.height !== pxH) {
+      trailsA.setSize(pxW, pxH);
+      trailsB.setSize(pxW, pxH);
+      pointsRT.setSize(pxW, pxH);
+    }
   });
-  
-  return <points geometry={pointsGeometry} material={pointsMaterial} frustumCulled={false} />;
+
+  // Keep the screen plane always visible (no frustum culling)
+  useEffect(() => { 
+    if (screenPlaneRef.current) screenPlaneRef.current.frustumCulled = false; 
+  }, []);
+
+  // build the screen‑aligned plane sized to viewport
+  const { width, height } = viewport;
+  useEffect(() => {
+    if (!screenPlaneRef.current) return;
+    screenPlaneRef.current.scale.set(width, height, 1);
+  }, [width, height]);
+
+  return (
+    <mesh ref={screenPlaneRef} position={[0,0,0]} material={presentMat}>
+      {/* unit plane scaled to viewport each resize */}
+      <planeGeometry args={[1, 1]} />
+    </mesh>
+  );
 }
 
-function CameraController() {
+function CameraMotion() {
   const { camera } = useThree();
-  const time = useRef(0);
-  
-  useFrame(({ pointer }, delta) => {
-    time.current += delta;
-    
-    // Subtle auto-rotation (like reference)
-    const autoRotateSpeed = 0.05;
-    const angle = time.current * autoRotateSpeed;
-    
-    // Mix auto-rotation with mouse parallax (scaled for 10x larger scene)
-    const ease = 0.05;
-    const radius = 50; // Much larger orbit for 10x attractor
-    const baseZ = 60; // Camera very far back for 10x scale
-    const x = Math.sin(angle) * radius * 0.3 + pointer.x * 1.5;
-    const y = -pointer.y * 1.2;
-    const z = Math.cos(angle) * radius * 0.3 + baseZ;
-    
-    camera.position.x = THREE.MathUtils.lerp(camera.position.x, x, ease);
-    camera.position.y = THREE.MathUtils.lerp(camera.position.y, y, ease);
-    camera.position.z = THREE.MathUtils.lerp(camera.position.z, z, ease);
-    camera.lookAt(0, 0, 0);
+  const t = useRef(0);
+  useFrame(({ pointer }, dt) => {
+    t.current += dt;
+    const r = 0.3, baseZ = 60;
+    const target = new THREE.Vector3(0,0,0);
+    const px = Math.sin(t.current * 0.05) * r + pointer.x * 0.8;
+    const py = -pointer.y * 0.6;
+    const pz = Math.cos(t.current * 0.05) * r + baseZ;
+    camera.position.x = THREE.MathUtils.lerp(camera.position.x, px, 0.05);
+    camera.position.y = THREE.MathUtils.lerp(camera.position.y, py, 0.05);
+    camera.position.z = THREE.MathUtils.lerp(camera.position.z, pz, 0.05);
+    camera.lookAt(target);
   });
-  
   return null;
 }
 
 export default function AttractorHero() {
   const { scrollYProgress } = useScroll();
   const [coherence, setCoherence] = useState(0);
-  const [colorMode] = useState<ColorMode>('radius'); // Use radius mode like reference
   const spring = useSpring(0, { stiffness: 60, damping: 20, mass: 0.6 });
-  
+
   useEffect(() => {
-    const unsub = scrollYProgress.on('change', (v) => spring.set(Math.min(1, v * 1.5)));
-    const unsub2 = spring.on('change', (v) => setCoherence(v));
-    return () => {
-      unsub();
-      unsub2();
-    };
+    const unsubA = scrollYProgress.on('change', (v) => spring.set(Math.min(1, v * 1.4)));
+    const unsubB = spring.on('change', (v) => setCoherence(v));
+    return () => { unsubA(); unsubB(); };
   }, [scrollYProgress, spring]);
-  
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden bg-black">
-      {/* Canvas background */}
       <div className="absolute inset-0 z-0">
         <Canvas
           dpr={[1, 2]}
           camera={{ position: [0, 0, 60], fov: 50 }}
-          gl={{ 
+          gl={{
             powerPreference: 'high-performance',
             antialias: false,
             alpha: false
           }}
-          style={{ width: '100%', height: '100%' }}
+          onCreated={({ gl }) => {
+            gl.setClearColor(0x000000, 1);
+            // dev-time context loss guard
+            const canvas: HTMLCanvasElement = (gl.domElement as HTMLCanvasElement);
+            const onLost = (e: Event) => e.preventDefault();
+            canvas.addEventListener('webglcontextlost', onLost, false);
+          }}
         >
-          <CameraController />
-          <AttractorPoints coherence={coherence} colorMode={colorMode} />
+          <CameraMotion />
+          <AttractorLayer coherence={coherence} />
         </Canvas>
       </div>
-      
-      {/* Bottom CTA row */}
+
+      {/* CTA row (unchanged) */}
       <div className="absolute bottom-16 left-0 right-0 z-10">
         <div className="container-px max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-12">
@@ -332,21 +403,14 @@ export default function AttractorHero() {
                 We set & execute your enterprise AI strategy at startup speed.
               </p>
             </div>
-            
-            <div className="hidden md:block h-px flex-1 bg-white/20 max-w-xs"></div>
-            
+            <div className="hidden md:block h-px flex-1 bg-white/20 max-w-xs" />
             <div className="flex-shrink-0">
               <a
                 href="#approach"
                 className="inline-flex items-center gap-2 bg-yellow-400 text-black px-8 py-4 font-semibold hover:bg-yellow-300 transition-all duration-300 group"
               >
                 Learn more
-                <svg
-                  className="w-4 h-4 group-hover:translate-x-1 transition-transform"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
               </a>
