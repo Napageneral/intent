@@ -3,12 +3,34 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 
 const N = 15000;      // particle count
-const DT = 0.015;     // time step
+const DT = 0.06;      // time step (doubled for faster movement)
 const A  = 0.19;      // attractor parameter
 const SCALE = 9.0;    // world space scaling
+
+function FPSCounter({ setFps }: { setFps: (fps: number) => void }) {
+  const frameCount = useRef(0);
+  const lastTime = useRef(performance.now());
+
+  useFrame(() => {
+    frameCount.current++;
+    
+    const now = performance.now();
+    const delta = now - lastTime.current;
+    
+    // Update FPS every 500ms
+    if (delta >= 500) {
+      const currentFps = Math.round((frameCount.current / delta) * 1000);
+      setFps(currentFps);
+      frameCount.current = 0;
+      lastTime.current = now;
+    }
+  });
+
+  return null; // This component doesn't render anything in 3D
+}
 
 function ThomasPoints() {
   // Simulation state (unscaled) we integrate in-place
@@ -92,9 +114,26 @@ function ThomasPoints() {
 }
 
 export default function AttractorSimpleCPU() {
+  const [fps, setFps] = useState(60);
 
   return (
     <div className="fixed inset-0 z-0">
+      {/* FPS Counter */}
+      <div className="absolute bottom-4 right-4 z-10 pointer-events-none">
+        <div className="bg-black/50 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/10">
+          <div className="flex items-center gap-2">
+            <div className="text-xs font-mono text-white/70">FPS</div>
+            <div className={`text-lg font-mono font-bold ${
+              fps >= 55 ? 'text-green-400' :
+              fps >= 30 ? 'text-yellow-400' :
+              'text-red-400'
+            }`}>
+              {fps}
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <Canvas
         dpr={[1, 2]}
         gl={{ alpha: false, antialias: false, powerPreference: 'high-performance' }}
@@ -112,6 +151,7 @@ export default function AttractorSimpleCPU() {
           target={[0, 0, 0]}
         />
         
+        <FPSCounter setFps={setFps} />
         <ThomasPoints />
       </Canvas>
     </div>
