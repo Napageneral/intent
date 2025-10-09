@@ -36,15 +36,14 @@ function ThomasPoints() {
   const geomRef = useRef<THREE.BufferGeometry>(null!);
 
   useEffect(() => {
-    if (geomRef.current) {
-      // CRITICAL: R3F sometimes doesn't set count properly on declarative BufferAttribute
-      // We must set it manually to the actual particle count
-      const posAttr = geomRef.current.attributes.position;
-      if (posAttr && posAttr.count === 0) {
-        posAttr.count = N;
-      }
+    if (geomRef.current && !geomRef.current.attributes.position) {
+      // CRITICAL: Create BufferAttribute imperatively to ensure count is set correctly
+      // R3F's declarative approach sometimes fails to infer count from array length
+      const posAttr = new THREE.BufferAttribute(display, 3);
+      posAttr.usage = THREE.DynamicDrawUsage;
+      geomRef.current.setAttribute('position', posAttr);
     }
-  }, []);
+  }, [display]);
 
   // Render-time integration
   useFrame(() => {
@@ -78,14 +77,7 @@ function ThomasPoints() {
 
   return (
     <points frustumCulled={false}>
-      <bufferGeometry ref={geomRef}>
-        <bufferAttribute
-          attach="attributes-position"
-          array={display}
-          itemSize={3}
-          usage={THREE.DynamicDrawUsage}
-        />
-      </bufferGeometry>
+      <bufferGeometry ref={geomRef} />
       <pointsMaterial
         size={1.6 * dpr}         // Nice small particles
         sizeAttenuation={false}
