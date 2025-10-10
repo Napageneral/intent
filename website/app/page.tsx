@@ -3,14 +3,20 @@
 import ContactForm from '@/components/ContactForm';
 import dynamic from 'next/dynamic';
 
-// Background attractor - CPU-based Thomas attractor with interactive camera
-const AttractorSimpleCPU = dynamic(() => import('@/components/AttractorSimpleCPU'), { ssr: false });
+// Background attractor - GPU-based with 62.5k particles, trails, and bloom
+// const AttractorBG = dynamic(() => import('@/components/AttractorBG'), { ssr: false });
+
+// TESTING: Simpler GPU approach using working CPU baseline
+const AttractorGPUSimple = dynamic(() => import('@/components/AttractorGPUSimple'), { ssr: false });
 
 export default function Page() {
   return (
     <main>
-      {/* Thomas attractor background - auto-rotates, click-drag to orbit */}
-      <AttractorSimpleCPU />
+      {/* Thomas attractor background - GPU-accelerated, 62.5k particles with trails & bloom */}
+      {/* <AttractorBG /> */}
+      
+      {/* TESTING: Simpler GPU using working CPU baseline */}
+      <AttractorGPUSimple />
       {/* Header - Minimal Tenex style */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
         <div className="container-px flex h-24 items-center justify-between pt-4">
