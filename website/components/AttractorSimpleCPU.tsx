@@ -1,7 +1,6 @@
 'use client';
 
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useMemo, useRef, useEffect, useState } from 'react';
 
@@ -9,6 +8,19 @@ const N = 15000;      // particle count
 const DT = 0.06;      // time step (doubled for faster movement)
 const A  = 0.19;      // attractor parameter
 const SCALE = 9.0;    // world space scaling
+
+function AutoRotateCamera() {
+  useFrame(({ camera, clock }) => {
+    // Slow auto-rotation around Y axis
+    const time = clock.getElapsedTime();
+    const radius = 90;
+    camera.position.x = Math.sin(time * 0.1) * radius;
+    camera.position.z = Math.cos(time * 0.1) * radius;
+    camera.lookAt(0, 0, 0);
+  });
+
+  return null;
+}
 
 function FPSCounter({ setFps }: { setFps: (fps: number) => void }) {
   const frameCount = useRef(0);
@@ -117,7 +129,7 @@ export default function AttractorSimpleCPU() {
   const [fps, setFps] = useState(60);
 
   return (
-    <div className="fixed inset-0 z-0">
+    <div className="fixed inset-0 z-0 pointer-events-none">
       {/* FPS Counter */}
       <div className="absolute bottom-4 right-4 z-10 pointer-events-none">
         <div className="bg-black/50 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/10">
@@ -140,16 +152,8 @@ export default function AttractorSimpleCPU() {
         onCreated={({ gl }) => gl.setClearColor(0x000000, 1)}
         camera={{ position: [0, 0, 90], fov: 55 }}
       >
-        {/* Camera controls - auto-rotate + manual orbit */}
-        <OrbitControls
-          autoRotate
-          autoRotateSpeed={0.5}
-          enableDamping
-          dampingFactor={0.05}
-          enableZoom={false}        // Disable zoom - user needs to scroll page
-          enablePan={false}         // Disable panning
-          target={[0, 0, 0]}
-        />
+        {/* Auto-rotating camera - no manual controls */}
+        <AutoRotateCamera />
         
         <FPSCounter setFps={setFps} />
         <ThomasPoints />

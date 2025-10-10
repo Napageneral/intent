@@ -8,12 +8,11 @@ const AttractorSimpleCPU = dynamic(() => import('@/components/AttractorSimpleCPU
 
 export default function Page() {
   return (
-    <main className="pointer-events-none">
+    <main>
       {/* Thomas attractor background - auto-rotates, click-drag to orbit */}
       <AttractorSimpleCPU />
       {/* Header - Minimal Tenex style */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent pointer-events-none">
-        <div className="pointer-events-auto">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
         <div className="container-px flex h-24 items-center justify-between pt-4">
           <div className="flex items-center gap-2 ml-4">
             <div className="h-6 w-6 bg-gradient-to-br from-yellow-400 to-yellow-600" />
@@ -23,12 +22,11 @@ export default function Page() {
           </div>
           
           {/* Hamburger menu */}
-          <button className="flex flex-col gap-1.5 p-2 mr-4" aria-label="Menu" style={{ pointerEvents: 'auto' }}>
+          <button className="flex flex-col gap-1.5 p-2 mr-4" aria-label="Menu">
             <span className="h-0.5 w-6 bg-white"></span>
             <span className="h-0.5 w-6 bg-white"></span>
             <span className="h-0.5 w-6 bg-white"></span>
           </button>
-        </div>
         </div>
       </header>
 
@@ -36,8 +34,7 @@ export default function Page() {
       <section className="relative min-h-screen" />
 
       {/* Our Approach - Strategy/Context/Enablement */}
-      <section id="approach" className="relative py-32 z-10 pointer-events-none">
-        <div className="pointer-events-auto">
+      <section id="approach" className="relative py-32 z-10">
         <div className="container-px max-w-7xl mx-auto">
           <div className="mb-16">
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-6">OUR APPROACH</p>
@@ -60,7 +57,7 @@ export default function Page() {
                   We turn your legacy codebase into agent-ready context. Layer guides into your repo that surface golden paths, invariants, and signals—so agents stop hallucinating and start shipping.
                 </p>
               </div>
-              <a href="#" className="text-sm text-yellow-400 hover:text-yellow-300 inline-flex items-center gap-2 group" style={{ pointerEvents: 'auto' }}>
+              <a href="#" className="text-sm text-yellow-400 hover:text-yellow-300 inline-flex items-center gap-2 group">
                 Learn more
                 <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -81,7 +78,7 @@ export default function Page() {
                   No 6-month strategy decks. We baseline your Agent Effectiveness Score, run pilots on real services, and deliver measurable ROI in weeks—not quarters.
                 </p>
               </div>
-              <a href="#" className="text-sm text-yellow-400 hover:text-yellow-300 inline-flex items-center gap-2 group" style={{ pointerEvents: 'auto' }}>
+              <a href="#" className="text-sm text-yellow-400 hover:text-yellow-300 inline-flex items-center gap-2 group">
                 Learn more
                 <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -90,12 +87,11 @@ export default function Page() {
             </div>
           </div>
         </div>
-        </div>
       </section>
 
       {/* Stark call-out - The Choice */}
-      <section className="relative min-h-screen flex items-center justify-center z-10 pointer-events-none">
-        <div className="pointer-events-auto w-full">
+      <section className="relative min-h-screen flex items-center justify-center z-10">
+        <div className="w-full">
         {/* Corner brackets - Tenex style */}
         <div className="absolute top-20 left-20 w-16 h-16 border-l-2 border-t-2 border-white/30"></div>
         <div className="absolute top-20 right-20 w-16 h-16 border-r-2 border-t-2 border-white/30"></div>
@@ -129,7 +125,6 @@ export default function Page() {
             <a 
               href="#contact" 
               className="inline-flex items-center gap-2 bg-white text-black px-8 py-4 font-semibold hover:bg-yellow-400 transition-all duration-200 group text-lg"
-              style={{ pointerEvents: 'auto' }}
             >
               Get started
               <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -142,8 +137,8 @@ export default function Page() {
       </section>
 
       {/* AI isn't scary visual + social proof */}
-      <section className="relative min-h-screen flex items-center justify-center z-10 pointer-events-none">
-        <div className="pointer-events-auto w-full">
+      <section className="relative min-h-screen flex items-center justify-center z-10">
+        <div className="w-full">
         <div className="container-px max-w-7xl w-full">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left: Visual placeholder */}
@@ -195,8 +190,8 @@ export default function Page() {
       </section>
 
       {/* Contact - Get Started */}
-      <section id="contact" className="relative py-32 z-10 pointer-events-none">
-        <div className="pointer-events-auto">
+      <section id="contact" className="relative py-32 z-10">
+        <div>
         <div className="container-px max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16">
             {/* Left side */}
@@ -231,7 +226,7 @@ export default function Page() {
             </div>
             
             {/* Right side - Form */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-8" style={{ pointerEvents: 'auto' }}>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-8">
               <ContactForm />
             </div>
           </div>
@@ -239,7 +234,7 @@ export default function Page() {
           <div className="mt-12 text-center">
             <p className="text-sm text-gray-500">
               Or email us at{' '}
-              <a href="mailto:hello@intent-systems.com" className="text-yellow-400 hover:text-yellow-300 transition-colors" style={{ pointerEvents: 'auto' }}>
+              <a href="mailto:hello@intent-systems.com" className="text-yellow-400 hover:text-yellow-300 transition-colors">
                 hello@intent-systems.com
               </a>
             </p>
@@ -249,8 +244,7 @@ export default function Page() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 z-10 pointer-events-none">
-        <div className="pointer-events-auto">
+      <footer className="border-t border-white/10 z-10">
         <div className="container-px py-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
@@ -264,7 +258,6 @@ export default function Page() {
               © {new Date().getFullYear()} Intent Systems. All rights reserved.
             </p>
           </div>
-        </div>
         </div>
       </footer>
     </main>
