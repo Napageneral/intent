@@ -129,96 +129,141 @@ website/
 
 ---
 
-## Layer 3: Attractor Background
+## Layer 3: GPU-Accelerated Thomas Attractor (`components/AttractorBG.tsx`)
 
-### Current Implementation: CPU-Based (`components/AttractorSimpleCPU.tsx`)
+**Purpose:** Full-viewport, fixed-position WebGL canvas rendering a Thomas attractor with GPU compute shaders for position updates.
 
-**Purpose:** Full-viewport, fixed-position WebGL canvas rendering a Thomas attractor particle system with CPU integration and interactive camera controls.
+**Status:** ✅ **Production Ready** — 62,500 particles at 60-120 FPS
 
-**Status:** ✅ **Working** — Clean, performant, interactive
-
-### Architecture
+### Architecture: Hybrid GPU/R3F Approach
 
 ```
-AttractorSimpleCPU (top-level component)
-├── <Canvas> (react-three/fiber, fills fixed div at z-0)
-│   ├── <OrbitControls> (auto-rotate + manual orbit)
-│   └── <ThomasPoints> (particle system)
-│       ├── Simulation buffer (CPU-integrated positions)
-│       ├── Display buffer (scaled for rendering)
-│       └── Points geometry (15,000 particles)
+AttractorBG (top-level component)
+├── <Canvas> (react-three/fiber, fixed at z-index: -10)
+│   ├── <AutoRotateCamera> (slow orbit around origin)
+│   ├── <FPSCounter> (performance monitor)
+│   └── <ThomasPointsGPU> (main particle system)
+│       ├── GPU Compute Pass (ping-pong FBOs for positions)
+│       │   ├── posPing/posPong (250×250 RGBA32F textures)
+│       │   ├── computeShader (Thomas attractor equations)
+│       │   └── Runs every frame, updates all positions on GPU
+│       └── R3F Points Rendering (normal 3D rendering)
+│           ├── Points geometry (62,500 vertices)
+│           ├── Vertex shader reads from position texture
+│           └── Fragment shader with additive blending
 ```
 
-### Key Design Decisions
+### Why This Hybrid Approach Works
 
-#### 1. **CPU Integration** (not GPU compute)
-- Simpler to debug and reason about
-- No FBO/ping-pong complexity
-- Sufficient performance for 15k particles at 60fps
-- Easy to extend with different attractors later
+**The Problem with Pure GPU Pipelines:**
+- Manual viewport/scissor management is error-prone
+- `autoClear: false` fights with R3F's render loop
+- Clip-space quad presentation requires careful timing
+- Easy to get "bottom-left quarter" or black screen bugs
 
-#### 2. **Z-Index Layering** (critical for interaction)
-```tsx
-// Canvas at base layer
-<div className="fixed inset-0 z-0">  {/* AttractorSimpleCPU */}
+**The Hybrid Solution:**
+- **GPU compute** for position updates (fast, handles 62.5k particles)
+- **Normal R3F rendering** for display (proven to work, no viewport issues)
+- **No manual FBO→canvas presentation** (R3F handles it)
+- **No scissor/viewport foot-guns** (R3F manages state)
 
-// Content layers above, but transparent to clicks
-<section className="z-10 pointer-events-none">
-  <div className="pointer-events-auto">  {/* Interactive elements only */}
-    <button>...</button>
-  </div>
-</section>
+**Result:** Best of both worlds—GPU speed, R3F simplicity.
+
+### Key Implementation Details
+
+#### 1. **GPU Compute Shader (Thomas Attractor)**
+
+```glsl
+// computeFrag.glsl
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D uPositions;  // Previous positions
+uniform float uA;              // Attractor parameter
+uniform float uDT;             // Time step
+
+void main() {
+  vec3 p = texture2D(uPositions, vUv).xyz;
+  
+  // Thomas attractor equations
+  vec3 d = vec3(
+    -uA * p.x + sin(p.y),
+    -uA * p.y + sin(p.z),
+    -uA * p.z + sin(p.x)
+  ) * uDT;
+  
+  p += d;
+  
+  // Soft boundary
+  float r = length(p);
+  if (r > 40.0) p *= 0.96;
+  
+  gl_FragColor = vec4(p, 1.0);
+}
 ```
 
-**Why this works:**
-- Canvas is at `z-0` (base layer)
-- All content sections are at `z-10` BUT with `pointer-events-none`
-- Interactive elements (buttons, links, forms) wrapped in `pointer-events-auto` divs
-- **Result:** Clicks "fall through" empty space to reach the canvas for orbit controls
+**Ping-pong pattern:**
+```ts
+// Read from one FBO, write to the other
+const posRead  = flip ? posPing : posPong;
+const posWrite = flip ? posPong : posPing;
 
-#### 3. **OrbitControls Configuration**
-```tsx
-<OrbitControls
-  autoRotate
-  autoRotateSpeed={0.5}     // Subtle rotation when idle
-  enableDamping              // Smooth camera movement
-  dampingFactor={0.05}
-  enableZoom={false}         // Disabled (conflicts with page scroll)
-  enablePan={false}          // Disabled (not needed)
-  target={[0, 0, 0]}
-/>
+computeMaterial.uniforms.uPositions.value = posRead.texture;
+gl.setRenderTarget(posWrite);
+gl.render(computeScene, computeCamera);
+gl.setRenderTarget(null);
+
+flip = !flip;
 ```
 
-**Interaction model:**
-- Auto-rotates slowly when idle
-- Click-and-drag anywhere on empty space to orbit manually
-- Auto-rotation pauses during manual control
-- Scrolling works normally (zoom disabled to prevent conflict)
+#### 2. **Points Rendering (Vertex Shader Reads Texture)**
 
-#### 4. **Critical R3F Bug Fix**
-**Problem:** Declarative `<bufferAttribute>` in R3F sometimes sets `count: 0`, making particles invisible.
+```glsl
+// pointsVert.glsl
+uniform sampler2D uPositions;  // GPU-computed positions
+uniform float uScale;          // World-space scaling
+attribute vec2 aRef;           // UV coordinate into position texture
+
+void main() {
+  vec3 pos = texture2D(uPositions, aRef).xyz * uScale;
+  gl_PointSize = 3.2;  // Constant pixel size
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+}
+```
+
+**Each vertex:**
+- Has an `aRef` attribute (UV into the 250×250 position texture)
+- Fetches its position from the GPU-computed texture
+- Renders as a point with additive blending
+
+#### 3. **Critical Timing Fix**
+
+**Problem:** R3F's `useMemo` for scenes creates them empty initially; `useEffect` adds children later. If `useFrame` runs before `useEffect`, scenes are empty and renders fail silently.
 
 **Solution:**
 ```tsx
-useEffect(() => {
-  if (geomRef.current) {
-    const posAttr = geomRef.current.attributes.position;
-    if (posAttr && posAttr.count === 0) {
-      posAttr.count = N;  // Manually set count to actual particle count
-    }
-  }
-}, []);
-```
+const computeScene = useMemo(() => new THREE.Scene(), []);
 
-**Why this happens:** R3F's declarative attribute creation doesn't always infer count from array length. Manual fix ensures Three.js knows how many particles to render.
+useEffect(() => {
+  computeScene.add(computeQuad);  // Happens after initial render
+  return () => { computeScene.remove(computeQuad); };
+}, [computeScene, computeQuad]);
+
+useFrame(() => {
+  // CRITICAL: Wait for scene to be populated
+  if (computeScene.children.length === 0) return;
+  
+  // Now safe to render
+  gl.render(computeScene, computeCamera);
+});
+```
 
 ### Tunables
 
 ```ts
-const N = 15000;      // particle count (15k is sweet spot for performance)
-const DT = 0.015;     // time step (controls simulation speed)
+const SIZE = 250;     // 250×250 = 62,500 particles
+const DT = 0.06;      // time step (controls movement speed)
 const A  = 0.19;      // attractor parameter (0.19 = classic Thomas shape)
-const SCALE = 9.0;    // world space scaling (how big it appears)
+const SCALE = 9.0;    // world space scaling
 ```
 
 **Camera:**
@@ -226,187 +271,29 @@ const SCALE = 9.0;    // world space scaling (how big it appears)
 camera={{ position: [0, 0, 90], fov: 55 }}
 ```
 - Camera at `z=90` shows full attractor without clipping
-- FOV 55° is slightly wider than default (50°) for better framing
+- Auto-rotates in a circle (radius 90, speed 0.1)
 
-**Particle Material:**
-```tsx
-<pointsMaterial
-  size={1.6 * dpr}              // Pixel size (scales with device pixel ratio)
-  sizeAttenuation={false}       // Constant pixel size (doesn't get smaller with distance)
-  depthWrite={false}            // Allows proper blending
-  transparent
-  opacity={0.75}
-  blending={THREE.AdditiveBlending}  // Glowy additive effect
-  color={new THREE.Color(0.80, 0.95, 1.00)}  // Light cyan/blue
-/>
+**Particle Rendering:**
+```glsl
+gl_PointSize = 1.6 * dpr;  // Scales with device pixel ratio
+// Additive blending, Gaussian falloff, 75% opacity
+// Light cyan/blue color (0.80, 0.95, 1.00)
 ```
-
-### Thomas Attractor Equations
-
-```ts
-// For each particle at (x, y, z):
-const dx = (-A * x + Math.sin(y)) * DT;
-const dy = (-A * y + Math.sin(z)) * DT;
-const dz = (-A * z + Math.sin(x)) * DT;
-
-// Update position
-x += dx;
-y += dy;
-z += dz;
-
-// Soft boundary (prevents particles from escaping to infinity)
-const r2 = x*x + y*y + z*z;
-if (r2 > 1600.0) {
-  x *= 0.96;
-  y *= 0.96;
-  z *= 0.96;
-}
-```
-
-**Flow:**
-1. Particles initialized in random cube `[-1, 1]³`
-2. Each frame, apply Thomas equations to update positions
-3. Scale positions by `SCALE` for display
-4. Render as additive-blended points
 
 ### Performance
 
-- **60 FPS** on M1+ Macs, modern desktops
-- **45-60 FPS** on integrated GPUs (Intel Iris, older MacBooks)
-- **CPU load:** ~5-10% single core (JavaScript integration loop)
-- **GPU load:** Minimal (just rendering 15k points, no compute shaders)
+- **120 FPS** on M1+ Macs (low battery might cap at 30-60)
+- **60-90 FPS** on modern desktops with dedicated GPUs
+- **GPU memory:** ~500KB for position FBOs (250×250×4 floats × 2)
+- **CPU load:** Minimal (GPU handles all computation)
 
-### Future: GPU Pipeline (AttractorBG.tsx)
+### Interaction Model
 
-**Status:** 🚧 **Exists but not currently in use** — needs fixes
-
-The previous `AttractorBG.tsx` implementation used:
-- GPU compute shaders (ping-pong FBOs)
-- Trail accumulation
-- More complex visual effects
-
-**Why we switched to CPU version:**
-- Easier to debug (no shader compilation issues)
-- Simpler architecture (no FBO management)
-- Sufficient performance for current needs
-- Faster iteration during development
-
-**When to revisit GPU version:**
-- Want 50k+ particles
-- Want persistent trails (motion blur effect)
-- Want more complex visual effects (bloom, color shifts)
-- Performance headroom needed for other effects
-
----
-
-### Legacy GPU Attractor Documentation (`components/AttractorBG.tsx`)
-
-**Note:** The following documents the GPU-based implementation that's currently not in use. Kept for reference.
-
-### Architecture
-
-```
-AttractorBG (top-level component)
-├── <Canvas> (react-three-fiber, fills fixed div)
-│   ├── GlobalOrbit (OrbitControls on document.body for drag-to-rotate)
-│   └── Layer (main render logic)
-│       ├── Compute ping-pong (position updates via Thomas equations)
-│       ├── Points render (to offscreen pointsRT)
-│       ├── Trails composite (accumulation with decay)
-│       └── Present plane (camera-pinned quad showing trails texture)
-```
-
-### Tunables (at top of file)
-
-```ts
-const SIZE = 250;              // 250×250 = 62,500 particles
-const DT = 0.015;              // time step for Thomas equations
-const START_A = 0.19;          // Thomas parameter (chaotic)
-const END_A = 0.21;            // Thomas parameter (coherent)
-const START_DECAY = 0.962;     // trail persistence (chaos)
-const END_DECAY = 0.982;       // trail persistence (order)
-const POINT_SIZE_PX = 2.5;     // pixel size of each particle
-const SCALE_ON_SCREEN = 6.0;   // world-space scale of attractor
-const BRIGHTNESS = 2.2;        // composite gain (brightness)
-const DROPOUT = 0.20;          // fraction of particles discarded (0 = solid, 1 = empty)
-```
-
-**Current settings prioritize visibility** (larger points, brighter, less dropout, smaller attractor).
-
-### Pipeline Stages
-
-#### 1. **Position Compute** (Thomas attractor equations)
-- **FBOs**: `posPing` ↔ `posPong` (SIZE×SIZE, RGBA32F)
-- **Shader**: `computeFrag` applies Thomas equations:
-  ```glsl
-  dx = (-a*x + sin(y)) * dt
-  dy = (-a*y + sin(z)) * dt
-  dz = (-a*z + sin(x)) * dt
-  ```
-- **Soft boundary**: if `r > 120`, scale down by `0.96` to keep particles in bounds
-- **Runs every frame** in `useFrame` via ping-pong swap
-
-#### 2. **Points Render** (to offscreen RT)
-- **Geometry**: `Points` with 62,500 vertices; each vertex fetches its position from the positions texture via `aRef` attribute
-- **Shader**: `pointsVert` + `pointsFrag`
-  - Fetches position from `uPositions` texture
-  - Colors by radius (blue→cyan→white gradient)
-  - Per-particle dropout: `if (vSeed < uDropout) discard;`
-  - Gaussian falloff for soft sprite: `exp(-5.0 * d²)`
-  - Additive blending with very low alpha (`0.06–0.16` range)
-- **Target**: `pointsRT` (screen resolution × DPR, RGBA16F)
-
-#### 3. **Trails Composite** (accumulation)
-- **FBOs**: `trailsA` ↔ `trailsB` (screen resolution × DPR, RGBA16F)
-- **Shader**: `compositeFrag`
-  ```glsl
-  vec3 accum = uDecay * prevTrails + uGain * currentPoints;
-  ```
-- **Effect**: creates "persistence buffer" — trails fade over time based on `uDecay`
-- **Scroll-driven**: `uDecay` lerps from `START_DECAY` → `END_DECAY` as user scrolls (more coherence = longer trails)
-
-#### 4. **Present Plane** (camera-pinned quad)
-- **Material**: `presentMat` (just blits `trailsTexture` to a full-screen quad)
-- **Positioning**: plane placed 1 unit in front of camera, scaled to match frustum width/height with 1.5× overscan to prevent edge clipping
-- **Updates every frame** to follow camera rotation
-- **Why camera-pinned?**: R3F's render loop expects a scene graph; direct-to-framebuffer breaks this, so we use a plane instead
-
-### OrbitControls (drag-to-rotate)
-
-**Implementation**: `GlobalOrbit` component
-- **Attaches to `document.body`** so drag events register even when canvas is behind content
-- **Smart interaction detection**: only enables rotation if drag starts on non-interactive elements (not links/buttons/inputs)
-- **Cursor feedback**: `grabbing` cursor during drag
-- **Auto-rotate**: subtle rotation when idle (`autoRotateSpeed: 0.2`)
-- **Disabled by default**, enabled only during drag to avoid stealing page interactions
-
-### Scroll Integration
-
-- **`useScroll()` from Framer Motion**: tracks scroll progress
-- **Spring animation**: `useSpring()` smooths scroll → coherence mapping
-- **`coherence` parameter** (0→1):
-  - Lerps Thomas `a` parameter from `START_A` → `END_A`
-  - Lerps trail `decay` from `START_DECAY` → `END_DECAY`
-  - **Effect**: attractor becomes more ordered as user scrolls through page
-
-### Known Issues & TODOs
-
-#### ✅ Fixed
-- Particles too small/faint → increased `POINT_SIZE_PX` and `BRIGHTNESS`
-- Camera rotation not working → removed `CameraParallax` (was fighting `OrbitControls`)
-- Top/bottom clipping → increased overscan to 1.5×
-
-#### 🚧 Outstanding
-- **OrbitControls might still conflict with page scroll** on touch devices — may need pointer capture
-- **Auto-rotate is subtle** — could be increased or disabled if user prefers
-- **Constellation vs. wire balance**: over long periods (60s+), attractor can coalesce to a wire; tune `END_DECAY` lower (e.g., `0.978`) if this is undesirable
-
-#### 💡 Future Enhancements
-- **Bloom post-processing** for softer glow
-- **Pause on tab hidden** to save GPU
-- **Hover hint overlay** ("Drag to explore") that fades after first interaction
-- **Responsive tunables**: different settings for mobile vs. desktop
-- **Color mode toggle**: current is blue→cyan→white; could add other palettes
+**Completely inert background:**
+- Canvas has `pointer-events: none`
+- No manual controls (previously tried, broke scrolling on mobile)
+- Auto-rotation only for ambient motion
+- Scrolling always works (never captured by canvas)
 
 ---
 
@@ -516,18 +403,18 @@ Before deploying to Vercel:
    ```bash
    npm run dev
    ```
-   - Open `http://localhost:3000` (or `3001` if port conflict)
-   - Verify particles visible and rotating
-3. ✅ **No console errors** (especially from Three.js or R3F)
-4. ✅ **Drag-to-rotate works** (cursor changes to `grabbing`, attractor rotates)
-5. ✅ **Links and buttons clickable** (drag should not interfere)
-6. ✅ **Scroll-driven coherence** (attractor becomes more ordered as you scroll)
-7. ✅ **No top/bottom clipping** (check at various zoom levels and DPRs)
-8. ✅ **Mobile responsive** (test on actual device or Chrome DevTools)
+   - Open `http://localhost:3000`
+   - Verify 62,500 particles visible and flowing
+   - Check FPS counter shows 60+ FPS
+3. ✅ **No console errors** (especially WebGL/shader errors)
+4. ✅ **Scrolling works** on both desktop and mobile
+5. ✅ **Links and buttons clickable**
+6. ✅ **Camera auto-rotates** smoothly
+7. ✅ **Full viewport coverage** (no clipping on any edge)
 
 **CRITICAL RULE:** ⚠️ **NEVER DEPLOY TO VERCEL WITHOUT TESTING LOCALLY FIRST.** ⚠️
 
-If the build fails locally, it will fail on Vercel. If you see errors in local dev, fix them before pushing.
+If the build fails locally, it will fail on Vercel. Test the production build (`npm run build && npm start`) before pushing.
 
 ---
 
@@ -536,38 +423,33 @@ If the build fails locally, it will fail on Vercel. If you see errors in local d
 ### Adjust Particle Visibility
 
 Edit `components/AttractorBG.tsx` tunables:
-- **Brighter**: increase `BRIGHTNESS` (e.g., `2.5`)
-- **Larger points**: increase `POINT_SIZE_PX` (e.g., `3.0`)
-- **More particles visible**: lower `DROPOUT` (e.g., `0.15`)
+- **Larger points**: change `gl_PointSize` in vertex shader (currently `1.6 * dpr`)
+- **Different color**: modify `vec3 color` in fragment shader (currently cyan/blue)
+- **More/fewer particles**: change `SIZE` constant (e.g., `200` = 40k, `300` = 90k)
 
 ### Adjust Attractor Size
 
-- **Smaller on screen**: lower `SCALE_ON_SCREEN` (e.g., `5.0`)
-- **Larger on screen**: raise `SCALE_ON_SCREEN` (e.g., `8.0`)
+- **Smaller on screen**: lower `SCALE` constant (e.g., `7.0`)
+- **Larger on screen**: raise `SCALE` constant (e.g., `12.0`)
 
-### Change Scroll Coherence Behavior
+### Adjust Movement Speed
 
-- **Slower coherence**: increase scroll multiplier in `AttractorBG`:
-  ```ts
-  coherenceSpring.set(Math.min(1, v * 1.0)); // was 1.4
-  ```
-- **Longer trails at end**: raise `END_DECAY` (e.g., `0.985`)
-- **Shorter trails at end**: lower `END_DECAY` (e.g., `0.978`)
+- **Faster**: increase `DT` (e.g., `0.08` or `0.10`)
+- **Slower**: decrease `DT` (e.g., `0.04` or `0.03`)
 
-### Add New Section to Landing Page
+### Adjust Camera
 
-1. Add `<section>` in `app/page.tsx` (after Contact, before Footer, for example)
-2. Use `className="relative bg-black py-32"` for consistency
-3. Wrap content in `<div className="container-px max-w-7xl mx-auto">`
-4. Test scroll behavior and z-index layering
+- **Faster rotation**: increase multiplier in `AutoRotateCamera` (currently `0.1`)
+- **Wider view**: decrease camera `z` position (currently `90`)
+- **Closer view**: increase camera `z` position (e.g., `60`)
 
-### Debug Three.js Issues
+### Debug GPU Compute Issues
 
-1. Check browser console for WebGL errors
-2. Verify FBO creation (should see no errors about unsupported formats)
-3. If particles disappear: check `uPointSize`, `uScale`, or `SCALE_ON_SCREEN`
-4. If camera doesn't move: ensure `OrbitControls` isn't disabled and `CameraParallax` isn't fighting it
-5. Use React DevTools to inspect `AttractorBG` props and refs
+1. **Check browser console** for WebGL errors or shader compilation failures
+2. **Check FPS counter** - if <30, GPU might not support Float32 textures
+3. **If particles stuck at origin**: Verify compute scene has children before running
+4. **If particles disappear**: Check `SCALE` value and camera position
+5. **If only one dot**: BufferAttribute count issue - ensure geometry setup is correct
 
 ---
 
@@ -575,22 +457,21 @@ Edit `components/AttractorBG.tsx` tunables:
 
 ### Current Performance
 
-- **60 FPS on modern GPUs** (M1+ Mac, RTX 2060+)
-- **~30–45 FPS on integrated GPUs** (Intel Iris, older MacBooks)
-- **Particle count**: 62,500 (reasonable for most devices)
+- **120 FPS** on M1+ Macs (when plugged in)
+- **60-90 FPS** on modern desktops with dedicated GPUs
+- **30-60 FPS** on battery power (browser throttling)
+- **Particle count**: 62,500 (tested and performant)
 
 ### If Performance Issues
 
-1. **Lower particle count**: set `SIZE = 200` (40,000 particles)
-2. **Lower DPR**: change `dpr={[1, 2]}` to `dpr={[1, 1.5]}` in Canvas
-3. **Disable auto-rotate**: set `autoRotate={false}` in `GlobalOrbit`
-4. **Reduce trail accumulation quality**: use lower resolution for `trailsRT` (multiply by 0.5)
+1. **Lower particle count**: `SIZE = 200` (40,000 particles) or `SIZE = 150` (22,500)
+2. **Lower DPR**: `dpr={[1, 1]}` for low-end devices
+3. **Reduce time step**: `DT = 0.03` (slower movement, less GPU work per frame)
 
 ### GPU Memory
 
 - **Positions FBOs**: 250×250×4 floats × 2 = ~500 KB
-- **Trails FBOs**: 1920×1080×4 halffloats × 2 × DPR = ~8–16 MB (typical)
-- **Total VRAM**: < 20 MB for entire system
+- **Total VRAM**: <1 MB for entire system (very lightweight)
 
 ---
 
@@ -650,36 +531,46 @@ import { Analytics } from '@vercel/analytics/react';
 
 ### "Shader Error 0 — VALIDATE_STATUS false"
 
-**Cause:** Shader syntax error (often variable name collision).
+**Cause:** Shader syntax error in GPU compute or vertex/fragment shaders.
 
-**Fix:** Check console for specific error line. Common issues:
-- Using reserved words (`position`, `normal` in vertex shaders)
-- Missing semicolons
+**Fix:** Check console for specific line number. Common issues:
+- Missing semicolons in GLSL
 - Type mismatches (vec3 vs. float)
+- Uniform/attribute name typos
 
 ### Particles not visible
 
-1. Check `POINT_SIZE_PX` (should be > 1.0)
-2. Check `SCALE_ON_SCREEN` (attractor might be off-camera if too large or small)
-3. Check `BRIGHTNESS` (should be > 1.0)
-4. Inspect console for WebGL context loss errors
-5. Hard reload (Cmd+Shift+R) to clear shader cache
+1. **Check FPS counter** - if it's rendering (>0 FPS), the pipeline is running
+2. **Check `SIZE` and `SCALE`** - particles might be off-camera
+3. **Check `gl_PointSize`** in vertex shader - should be > 1.0
+4. **Hard reload** (Cmd+Shift+R) to clear shader cache
+5. **Check console** for WebGL context loss or shader compilation errors
 
-### Camera not rotating on drag
+### Only seeing one dot or particles stuck at origin
 
-1. Verify `GlobalOrbit` is rendered in Canvas
-2. Check that `CameraParallax` is NOT present (it fights OrbitControls)
-3. Inspect DevTools: `console.log` inside `onDown` handler to verify pointer events fire
-4. Check if an overlay is blocking pointer events (use `pointer-events: none` if needed)
+**Cause:** Compute scene not populated before `useFrame` runs, or BufferAttribute setup issue.
 
-### Top/bottom clipping
+**Fix (already implemented):**
+```tsx
+useFrame(() => {
+  // Wait for compute scene to be ready
+  if (computeScene.children.length === 0) return;
+  
+  // Now safe to render
+  gl.render(computeScene, computeCamera);
+});
+```
 
-1. Increase overscan in present plane scale:
-   ```ts
-   screenPlaneRef.current.scale.set(w * 1.6, h * 1.6, 1); // was 1.5
-   ```
-2. Verify Canvas `className="fixed inset-0"` is correct
-3. Check for parent containers with `overflow: hidden`
+### Scrolling doesn't work
+
+**Cause:** Canvas capturing pointer events.
+
+**Fix:** Ensure canvas wrapper has `pointer-events: none`:
+```tsx
+<div className="fixed inset-0 -z-10 pointer-events-none">
+  <Canvas>...</Canvas>
+</div>
+```
 
 ---
 
@@ -696,9 +587,9 @@ import { Analytics } from '@vercel/analytics/react';
 ### UX Principles
 
 1. **Background visual is secondary** — content must always be readable and interactive
-2. **No performance impact on interaction** — 60 FPS or degrade gracefully
-3. **Drag-to-rotate is discoverable but not required** — auto-rotate shows 3D nature
-4. **Scroll-driven coherence is symbolic** — matches "chaos → order" value prop
+2. **No performance impact on interaction** — 60+ FPS or degrade gracefully
+3. **Auto-rotate is subtle** — ambient motion, not distracting
+4. **Never interfere with scrolling** — canvas is completely inert (`pointer-events: none`)
 
 ### Accessibility Notes
 
@@ -724,7 +615,9 @@ import { Analytics } from '@vercel/analytics/react';
 
 ## Decision Records
 
-- **ADR-XXX: GPU Thomas Attractor Hero** (TODO: create ADR documenting attractor choice, ping-pong FBO approach, OrbitControls on body, and camera-pinned plane vs. direct-to-framebuffer trade-off)
+- **Hybrid GPU/R3F approach** - GPU compute for positions, normal R3F rendering (avoids viewport/scissor issues)
+- **Inert background** - No manual controls to avoid scroll conflicts on mobile
+- **Auto-rotate only** - Subtle camera orbit for ambient 3D effect
 
 ---
 
@@ -741,9 +634,10 @@ import { Analytics } from '@vercel/analytics/react';
 ### When Modifying Attractor
 
 1. **Always test locally first** (run dev server, verify visual changes)
-2. **Document tunables** if adding new constants
-3. **Preserve GPU ping-pong pattern** — don't break FBO swaps
-4. **Test on integrated GPU** (Intel Iris) to ensure performance
+2. **Preserve GPU compute pattern** — don't break ping-pong FBO swaps
+3. **Wait for scenes to populate** — ensure `useFrame` checks `scene.children.length > 0`
+4. **Test shader changes incrementally** — verify compilation in browser console
+5. **Check FPS counter** — ensure changes don't tank performance
 
 ### When Refactoring Styles
 
